@@ -33,17 +33,14 @@ if (winLoc.match(/flash9/i)) {
   soundManager.flashVersion = 8;
 }
 
-soundManager.onready(function(){
-  var ok = soundManager.supported();
+soundManager.ontimeout(function(){
   var loaded = soundManager.getMoviePercent();
-  var msg = null;
-  if (!ok) {
-    // loaded, or no?
-    msg = 'No response (yet), flash movie '+(loaded?'loaded OK (likely security/error case)':'has not loaded (likely flash-blocked.)')+' Waiting indefinitely ...';
-  } else {
-    msg = 'SoundManager load OK';
-  }
-  document.getElementById('sm2-status').innerHTML = msg;
+  document.getElementById('sm2-status').innerHTML = 'No response (yet), flash movie '+(loaded?'loaded OK (likely security/error case)':'has not loaded (likely flash-blocked.)')+' Waiting indefinitely ...';
+});
+
+soundManager.onready(function(){
+  var loaded = soundManager.getMoviePercent();
+  document.getElementById('sm2-status').innerHTML = 'SoundManager load OK';
 });
 
 </script>
@@ -99,8 +96,12 @@ soundManager.onready(function(){
   Maybe highlight on-screen, red border, etc..? */</span></span>
 }
 #sm2-container.swf_unblocked {
-  <span><span>/* Applied if movie loads successfully
-  (flash started, so move off-screen etc.) */</span></span>
+  <span><span>/* Applied if movie loads successfully after
+  an unblock (flash started, so move off-screen etc.) */</span></span>
+}
+#sm2-container.swf_loaded {
+  <span><span>/* Applied if movie loads, regardless of whether
+  it was initially blocked */</span></span>
 }
 #sm2-container.swf_error {
   <span><span>/* "Fatal" error case: SWF loaded,

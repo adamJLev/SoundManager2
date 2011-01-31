@@ -28,7 +28,9 @@ h1 {
 }
 
 h2 {
- font-family:helvetica,arial,verdana,tahoma,"sans serif";
+/*
+ font-family:"helvetica neue",helvetica,arial,verdana,tahoma,"sans serif";
+*/
  font-size:1.5em;
 }
 
@@ -36,6 +38,12 @@ h3 {
  font-size:1.17em;
  border-bottom:1px solid #ccc;
  padding-bottom:0.25em;
+ _margin-top:1.5em; /* fark IE6 */
+}
+
+h3,
+.likeh3,
+.home .columnar .c2 #about-sm2 h3:first-child { /* silly override */
  margin-top:1.5em;
 }
 
@@ -54,10 +62,78 @@ h5 {
  padding-bottom:0.25em;
 }
 
+body.home .sm2-speaker {
+ float:right;
+ display:inline;
+ padding-left:1em;
+ margin-top:-40px;
+ *margin-top:0px; /* IE 7 buggery */
+ background:#fff;
+ max-width:192px;
+ min-width:64px;
+ width:30%;
+}
+
+body.home .sm2-speaker img {
+ width:100%;
+ max-width:192px;
+ min-width:32px;
+}
+
+body.home #about-sm2 h2.special,
+body.home #about-sm2 h3,
+body.home #about-sm2 h4 {
+ font-weight:300;
+ font-size:1.75em;
+ border-bottom:none;
+ padding-bottom:0px;
+}
+
+body.home #about-sm2 h2.special {
+ font-size:2.2em;
+ margin-top:0.1em;
+}
+
+body.home #about-sm2 h2.special,
+body.home #about-sm2 h3 {
+ letter-spacing:0px;
+}
+
+body.home #about-sm2 h3 {
+ color:#333;
+ padding-bottom:3px;
+ border-bottom:1px solid #eee;
+}
+
 body.home h4 {
-	border-bottom: 1px solid #e9e9e9;
-	padding-bottom: 0.33em;
-	margin-bottom: 0.75em;
+ border-bottom: 1px solid #e9e9e9;
+ padding-bottom: 0.33em;
+ margin-bottom: 0.75em; 
+}
+
+body.home #about-sm2 h4 {
+ font-size:1.3em;
+ color:#444;
+ margin-bottom: 0.5em;
+ margin-top: 1.5em;
+}
+
+body.home .demo-more,
+body.home .demo-more-abs {
+ text-align:right;
+ font-size:x-small;
+ margin-right:0.25em;
+ white-space:nowrap;
+}
+
+body.home .demo-more-abs {
+ position:absolute;
+ right:0px;
+ bottom:0px;
+}
+
+.home-shopping-network {
+ font-style:italic;
 }
 
 em em {
@@ -299,7 +375,7 @@ h2 {
 #top h2 {
  /* tagline */
  font-size:1.25em;
- font-weight:lighter;
+ font-weight:300;
  padding-top:2px;
  letter-spacing:-1px;
 }
@@ -309,7 +385,7 @@ h2 {
  padding:0px 0px 2em 0px;
  padding-top:1px;
  margin:0px auto;
- max-width:110em;
+ max-width:106em;
  *padding:0px 1em 2em 1em;
  zoom:1;
 }
@@ -340,7 +416,7 @@ h2 {
 .columnar .c1 h2 {
  position:relative;
  font-size:1.2em;
- padding:0.46em 0.5em;
+ padding:0.37em 0.5em;
  vertical-align:middle;
  background:#333;
  color:#fff;
@@ -392,6 +468,7 @@ h2 {
 .columnar .c2 h3:first-child {
  margin-top:0.2em;
  padding-bottom:0.3em;
+ font-weight:bold;
 }
 
 .columnar .c2 > .f-block:first-child > h4 {
@@ -479,7 +556,7 @@ ul {
  min-width:17em;
  max-width:20em;
  background:#3399cc;
- opacity:0.95;
+ opacity:0.97;
  _width:17em;
  *opacity:1;
  *top:1.5em;
@@ -506,9 +583,10 @@ ul {
  display:block;
  width:auto;
  border:none;
- padding:0.4em;
+ padding:0.5em;
  padding-left:1em;
  color:#fff;
+ color:rgba(255,255,255,0.9);
 }
 
 #nav ul li a {
@@ -574,13 +652,18 @@ div.clear {
  background:#666;
 }
 
+.medium-note {
+ padding-top:1.5em;
+ font-size:1em;
+}
+
 ul.standard {
  line-height:1.5em;
  padding-left:1.2em;
  *padding-left:0px;
  color:#333;
  margin-top:0.5em;
- margin-bottom:0.5em;
+ margin-bottom:1em;
  list-style-type:square;
 }
 
@@ -590,7 +673,7 @@ ul.standard li {
 
 ul.standard ul {
  margin-top:0.5em;
- margin-bottom:1em;
+ margin-bottom:1.5em;
  padding-left:1.2em;
 }
 
@@ -652,8 +735,8 @@ ul.standard ul {
 }
 
 .c3 h2 {
- height:1.75em;
- line-height:1.75em;
+ height:2em;
+ line-height:2em;
 }
 
 .wedge {
@@ -671,7 +754,7 @@ ul.standard ul {
 
 .c3 h2 .l,
 .c3 h2 .r {
- border-top:1.66em solid #333;
+ border-top:2em solid #333;
 }
 
 .wedge .l,
@@ -683,7 +766,7 @@ ul.standard ul {
  width:16px;
  height:100%;
  margin-left:-16px;
- border-top:1.7em solid #333;
+ border-top:2em solid #333;
 }
 
 .wedge .r,
@@ -913,8 +996,8 @@ span.nevermind,
 
 #reset-filter {
  position:relative;
- font-family:"Helvetica Neue Light","Helvetica Neue","Helvetica",helvetica,arial,verdana,sans-serif;
- font-weight:lighter;
+ font-family:"Helvetica Neue","Helvetica",helvetica,arial,verdana,sans-serif;
+ font-weight:300;
  font-size:2.5em;
  letter-spacing:-1px;
 }
@@ -979,7 +1062,7 @@ div#gsfn_list_widget a.widget_title {
 
 div#gsfn_list_widget .powered_by {
  font-family:verdana,arial;
- margin:0px 1em 0px 1em;
+ margin:-0.25em 1em 0px 1em;
  padding:0.25em 0px 0px 0px;
  border-top: 1px solid #ccc;
  font-size:xx-small;
@@ -1100,7 +1183,8 @@ a.cta span {
 }
 
 a.cta:hover,
-.c2 a:hover {
+.c2 a:hover,
+#sm2-options a:hover {
  background-color:#3399cc;
  border-color:#3399cc;
  color:#fff;
@@ -1220,6 +1304,23 @@ a.feature:hover {
  color:#fff;
 }
 
+a.warning,
+span.warning {
+ font-weight:bold;
+}
+
+a.warning,
+span.warning,
+a.warning code,
+span.warning code {
+ color:#993300;
+}
+
+a.warning:hover {
+ color:#fff;
+ background:#993300;
+}
+
 .newer p {
  margin:0px;
  padding:0px;
@@ -1334,8 +1435,13 @@ ul.playlist {
  font-size:xx-small;
 }
 
+ul.playlist li {
+ margin-bottom:0.2em;
+}
+
 ul.playlist li a {
  font-size:1em;
+ color:#333;
 }
 
 ul.playlist li a,
@@ -1388,7 +1494,7 @@ ul.playlist li a.not-supported {
  /* give user a hint that the format doesn't work */
  text-decoration:line-through;
  color:#666;
- opacity:0.5;
+ opacity:0.25;
 }
 
 ul.graphic li {
@@ -1437,85 +1543,184 @@ ul.graphic li a.sm2_link {
  letter-spacing: -0.02em;
 }
 
+ul.inline-playlist {
+ min-height:49px;
+ min-width:512px;
+ margin-top:4em;
+}
+
+ul.inline-playlist li {
+ float:left;
+ display:inline;
+ width:45%;
+ margin-right:0.25%;
+}
+
+body.home .sm2-inline-list .ui360-vis {
+ margin-right:0px;
+}
+
+/*
+body.home ul.standard {
+ color:#666;
+}
+*/
+
+body.home .columnar .c2 p {
+ line-height:1.6em;
+ color:#333;
+}
+
+body.home .c2 ul.playlist li a {
+ _color:#000; /* stupid IE */
+}
+
+body.home .c2 ul.playlist li.sm2_paused a,
+body.home .c2 ul.playlist li.sm2_playing a {
+ _color:#fff; /* argh */
+}
+
+body.home .c2 ul.standard {
+ _margin-left:1.5em;
+}
+
+body.home .ie6sucks {
+ _background:transparent !important;
+ _display:none !important;
+}
+
 /* Flash positioning and flashblock / clicktoflash handling */
 
 /* special-case for the SM2 homepage only */
 
 body.home #sm2-container {
- position:absolute;
+ display:block;
+ overflow:hidden;
  width:48px;
  height:48px;
- margin:1px 0px 0px 1px;
+ margin:1em 0px 0px 1px;
+ /* IE 6 hax, unlikely to have flashblock anyway... */
+ _width:8px;
+ _height:8px;
+ _margin:-8px 0px 0px 0px;
 }
 
+body.home #sm2-container.swf_timedout {
+ /* when blocked, show this inline */
+ position:relative;
+ left:0px;
+ top:0px;
+ border:1px solid #ff3333;
+ border-bottom:none;
+ margin:1em 0px 0px 0px;
+ z-index:2;
+}
+
+body.home #sm2-container.swf_unblocked {
+ /* if unblocked, retain relative position so stuff doesn't break. */
+ position:relative;
+}
+
+body.home #sm2-container.swf_loaded {
+ /* resular, loaded case */
+ width:8px;
+ height:8px;
+}
+
+body.home #sm2-container.swf_unblocked,
+body.home #sm2-container.swf_loaded,
+body.home #sm2-container.swf_unblocked embed,
+body.home #sm2-container.swf_loaded embed {
+ left:0px;
+ top:0px;
+ margin:0px;
+ bottom:auto;
+}
+
+/*
 body.home #sm2-container.high_performance {
  bottom:auto;
  left:auto;
  top:auto;
 }
 
-body.home #sm2-container.swf_timedout {
- border:1px solid #ff3333;
- border-bottom:none;
- margin:0px;
- z-index:2;
-}
 
 body.home #sm2-container.swf_unblocked {
  width:1px;
  height:1px;
 }
+*/
+
+#sm2-support-warning {
+ display:none;
+ border:1px solid #ff9999;
+ padding:0.5em;
+ margin-top:1.5em;
+ font-weight:bold;
+}
 
 #sm2-support {
  display:none;
  font-size:1em;
- border:1px solid #ff3333;
+ margin-top:-1px;
+ width:245px;
+}
+
+#sm2-support-warning,
+#sm2-support {
  background:#fff6f0;
- margin-top:48px;
+ border:1px solid #ff3333;
+}
+
+body.home #about-sm2 #sm2-support h3 {
+	border-color:#ff9999;
+	margin-top:0.25em;
+}
+
+body.home #special-demo-left {
+ min-height:65px;
+ position:relative;
+ float:left;
+ display:inline;
+ margin-right:1.5em;
+ padding-right:0.9em;
+ border-right:1px solid #eee;
+ *border-right:none;
+ _width:210px;
+}
+
+body.home #special-demo-right {
+ min-height:47px;
+ position:relative;
+ float:left;
+ display:inline;
+ margin-top:18px;
+ padding-right:15px;
+ *display:none; /* overflows in IE 7, can't be arsed */
+}
+
+body.home #special-demo-right a {
+ padding:0px;
+}
+
+body.home #inline-playlist {
+ clear:both;
+ float:right;
+ display:inline;
+ width:256px;
+ min-height:49px;
+ margin-top:2em;
+ padding-bottom:0px;
 }
 
 #demo-box {
  position:relative;
  float:right;
  display:inline;
- background: #fff; /* hide borders behind this box */
- padding-left:32px;
- padding-right:16px;
- margin-top:-1em;
- width:21.25em;
- /* hide from IE 6 */
- _position:absolute;
- _left:-9999em;
- _top:-9999em;
-}
-
-#demo-box #without-html5 {
- display:none;
-}
-
-#demo-box #with-debug,
-#demo-box #without-html5,
-#demo-box #without-html5 a {
- display:inline;
- margin-top:-0.75em;
- font-weight:normal;
- font-size:x-small;
- text-decoration:none;
- font-weight:normal;
- color:#666;
-}
-
-#demo-box #with-debug {
-	margin-right:1.5em;
-}
-
-#demo-box #without-html5 a:hover,
-#demo-box #with-debug:hover {
- color:#fff;
-}
-
-#demo-box a.feature-hot {
- display:inline;
+ margin-top:-4px;
+ background:#fff;
+ padding-left:2em;
+width:256px;
 }
 
 hr {
@@ -1554,7 +1759,12 @@ hr {
 }
 
 #revision-list > li {
+ margin-top:3em;
  margin-bottom:2em;
+}
+
+#revision-list > li:first-child {
+ margin-top:2em;
 }
 
 /* seasonal decorations */
@@ -1712,4 +1922,41 @@ ul.file-structure li span {
 
 #history li.in > p.compact {
 	font-weight:bold;
+}
+
+#sm2-options {
+	/* -html5, -debug etc. */
+	position: relative;
+	clear: both;
+	color: #666;
+	margin: 0.33em 0.75em 0px 0.75em;
+	border-top: 1px solid #e6e6e6;
+}
+
+#sm2-options .options-divider {
+	font-size: xx-small;
+	color: #ccc;
+}
+
+#sm2-options p {
+	font-size: x-small;
+	padding-left: 0px;
+}
+
+#sm2-options p:first-child {
+	margin-top: 0.75em;
+}
+
+#sm2-options a {
+	color: #3399cc;
+	text-decoration: none;
+	padding: 1px;
+	margin-top: -2px 0px 0px -2px;
+}
+
+#sm2-options a:hover {
+}
+
+#without-html5 {
+	display: none;
 }

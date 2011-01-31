@@ -236,12 +236,9 @@ function BasicMP3Player() {
 
 var basicMP3Player = null;
 
-soundManager.useFlashBlock = true;
-soundManager.url = '../../swf/'; // path to directory containing SM2 SWF
+// soundManager.url = '../../swf/'; // path to directory containing SM2 SWF files
 
 soundManager.onready(function() {
-  if (soundManager.supported()) {
-    // soundManager.createSound() etc. may now be called
-    basicMP3Player = new BasicMP3Player();
-  }
+  // soundManager.createSound() etc. may now be called
+  basicMP3Player = new BasicMP3Player();
 });

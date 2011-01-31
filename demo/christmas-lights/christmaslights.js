@@ -16,10 +16,28 @@ function XLSF(oTarget) {
   writeDebug('XLSF()');
   var IS_MOON_COMPUTER = false;
   var isIE = navigator.userAgent.match(/msie/i);
+  var isTouchDevice = navigator.userAgent.match(/ipad|ipod|iphone/i);
   var self = this;
   var xlsf = self;
+  var useAngle = window.location.href.match(/angle/i);
+  var useFollow = window.location.toString().match(/follow/i);
+  var classBase = 'xlsf-light'+(useAngle?' xlsf-angled':'');
   var animDuration = 1;
+  var lastMouseX = 0;
+  var lastMouseY = 0;
+  var mmhTimer = null;
+  var activeLights = [];
+  var testDiv = document.createElement('div');
+  var transforms = {
+    ie:  (typeof testDiv.style['-ms-transform'] !== 'undefined' ? '-ms-transform' : null),
+    moz: (typeof testDiv.style.MozTransform !== 'undefined' ? 'MozTransform' : null),
+    opera: (typeof testDiv.style['OTransform'] !== 'undefined' ? 'OTransform' : null),
+    webkit: (typeof testDiv.style.webkitTransform !== 'undefined' ? 'webkitTransform' : null),
+    prop: null
+  }
+  transforms.prop = (transforms.moz || transforms.webkit || transforms.ie || transforms.opera);
   this.oFrag = document.createDocumentFragment();
+  this.oExplosionTarget = document.getElementById('explosion-box');
   this.oTarget = (oTarget?oTarget:document.documentElement);
   this.oExplosionBox = document.createElement('div');
   this.oExplosionBox.className = 'xlsf-fragment-box';
@@ -38,9 +56,20 @@ function XLSF(oTarget) {
 
   if (window.location.href.match(/size=/i)) {
     this.lightClass = window.location.href.substr(window.location.href.indexOf('size=')+5);
+    if (this.lightClass.indexOf('#') !== -1) {
+      this.lightClass = this.lightClass.substr(0,this.lightClass.indexOf('#'));
+    }
   }
 
   this.lightXY = this.lightClasses[this.lightClass]; // shortcut to w/h
+
+  function rnd(n) {
+    return parseInt(Math.random()*n);
+  }
+
+  function plusMinus(n) {
+    return (parseInt(rnd(2),10)===1?n*-1:n);
+  }
 
   this.lightGroups = {
     left: [],
@@ -68,26 +97,25 @@ function XLSF(oTarget) {
   document.documentElement.appendChild(this.cover);
 
   this.initSounds = function() {
+    if (!soundManager.supported()) {
+      return false;
+    }
 	for (var i=0; i<6; i++) {
 	  soundManager.createSound({
 	    id: 'smash'+i,
 	    url: 'sound/glass'+i+'.mp3',
 	    autoLoad: true,
-	    multiShot: true
+	    multiShot: true,
+		volume:50
 	  });
 	}
-	/*
-    for (var i=self.lights.length; i--;) {
-      self.lights[i].initSound();
-    }
-    */
     self.initSounds = function() {} // safety net
   }
 
   this.appendLights = function() {
 	writeDebug('xlsf.appendLights()');
     self.oTarget.appendChild(self.oFrag);
-    self.oFrag = document.createDocumentFragment();
+    // self.oFrag = document.createDocumentFragment();
   }
 
   function ExplosionFragment(nType,sClass,x,y,vX,vY) {
@@ -115,7 +143,6 @@ function XLSF(oTarget) {
     } else if (self.sClass == 'right') {
       this.vX = Math.abs(this.vX)*-1;
     }
-// */
 
     this.burstTween = function() {
       // determine frame to show
@@ -127,7 +154,7 @@ function XLSF(oTarget) {
     }
 
     this.burst = function() {
-      self.oA = new Y.A(self.o,{marginLeft:{to:(self.vX*8)},marginTop:{to:(self.vY*8)}},animDuration,Y.UE.easeOutStrong);
+      self.oA = new Y.A(self.o,{marginLeft:{to:(self.vX*(5+Math.random()*10))},marginTop:{to:(self.vY*(5+Math.random()*10))}},animDuration*0.75+(0.5*Math.random()),Y.UE.easeOutStrong);
       self.oA.onTween.subscribe(self.burstTween);
       // self.oA.onComplete.subscribe(self.hide);
       self.oA.animate();
@@ -170,33 +197,32 @@ function XLSF(oTarget) {
 
     var mX = x;
     var mY = y;
+    var type = typeMap[nType+sClass];
+    var scale = 7.5
+    var shift = 2;
 
-    this.fragments.push(new ExplosionFragment(nType,sClass,mX,mY,-5,-5));
-    this.fragments.push(new ExplosionFragment(nType,sClass,mX,mY,0,-5));
-    this.fragments.push(new ExplosionFragment(nType,sClass,mX,mY,5,-5));
+    this.fragments.push(new ExplosionFragment(type,sClass,mX,mY,-rnd(scale),-rnd(scale)));
+    this.fragments.push(new ExplosionFragment(type,sClass,mX,mY,plusMinus(rnd(shift)),-rnd(scale)));
+    this.fragments.push(new ExplosionFragment(type,sClass,mX,mY,rnd(scale),-rnd(scale)));
 
-    this.fragments.push(new ExplosionFragment(nType,sClass,mX,mY,-5,0));
-    this.fragments.push(new ExplosionFragment(nType,sClass,mX,mY,0,0));
-    this.fragments.push(new ExplosionFragment(nType,sClass,mX,mY,5,0));
+    this.fragments.push(new ExplosionFragment(type,sClass,mX,mY,-rnd(scale),plusMinus(rnd(shift))));
+    this.fragments.push(new ExplosionFragment(type,sClass,mX,mY,plusMinus(rnd(shift)),plusMinus(rnd(shift))));
+    this.fragments.push(new ExplosionFragment(type,sClass,mX,mY,rnd(scale),plusMinus(rnd(shift))));
 
-    this.fragments.push(new ExplosionFragment(nType,sClass,mX,mY,5,-5));
-    this.fragments.push(new ExplosionFragment(nType,sClass,mX,mY,5,0));
-    this.fragments.push(new ExplosionFragment(nType,sClass,mX,mY,5,5));
+    this.fragments.push(new ExplosionFragment(type,sClass,mX,mY,rnd(scale),-rnd(scale)));
+    this.fragments.push(new ExplosionFragment(type,sClass,mX,mY,rnd(scale),plusMinus(rnd(shift))));
+    this.fragments.push(new ExplosionFragment(type,sClass,mX,mY,rnd(scale),rnd(scale)));
 
     this.init = function() {
       for (var i=self.fragments.length; i--;) {
         self.o.appendChild(self.fragments[i].o);
       }
-      // xlsf.oTarget.appendChild(self.o);
-      // self.oFrag = document.createDocumentFragment();
       if (!IS_MOON_COMPUTER) {
         // faster rendering, particles get cropped
-        xlsf.oFrag.appendChild(self.o);
+        xlsf.oExplosionTarget.appendChild(self.o);
       } else {
         // slower rendering, can overlay body
-        // _id('header').appendChild(self.o); 
-        // (document.documentElement?document.documentElement:document.body).appendChild(o);
-        xlsf.oFrag.appendChild(self.o);
+        xlsf.oExplosionTarget.appendChild(self.o);
       }
     }
 
@@ -219,20 +245,18 @@ function XLSF(oTarget) {
       self.boxVX = boxVX;
       self.boxVY = boxVY;
       // boundary checks
-// /*
       if (self.sClass == 'right') {
         self.boxVX = Math.abs(self.boxVX)*-1;
       } else if (self.sClass == 'left') {
         self.boxVX = Math.abs(self.boxVX);
       }
-// */
       for (var i=self.fragments.length; i--;) {
         self.fragments[i].animate();
       }
       if (!isIE && (IS_MOON_COMPUTER)) {
         var oAExplode = new Y.A(self.o,{marginLeft:{to:100*self.boxVX},marginTop:{to:150*self.boxVY},opacity:{to:0.01}},animDuration,Y.UE.easeInStrong);
       } else {
-        // even IE 7 sucks w/alpha-transparent PNG + CSS opacity. Boo urns.
+        // even IE 7 sucks w/alpha-transparent PNG + CSS opacity. Boourns.
         var oAExplode = new Y.A(self.o,{marginLeft:{to:100*self.boxVX},marginTop:{to:150*self.boxVY}},animDuration,Y.UE.easeInStrong);
       }
       oAExplode.onComplete.subscribe(self.reset);
@@ -242,14 +266,11 @@ function XLSF(oTarget) {
 
     this.init();
 
-    // this.trigger(); // boooom!
-
   }
 
-  function Light(sSizeClass,sClass,nType,x,y) {
+  function Light(sSizeClass,sClass,nType,x,y,row,col) {
     var self = this;
     this.o = document.createElement('div');
-//    this.o.src = 'image/empty.gif';
     this.sClass = sClass;
     this.sSizeClass = sSizeClass;
     this.nType = (nType||0);
@@ -260,6 +281,8 @@ function XLSF(oTarget) {
     this.h = xlsf.lightClasses[sSizeClass];
     this.x = x;
     this.y = y;
+    this.row = row;
+    this.col = col;
     this.bg = 'image/bulbs-'+this.w+'x'+this.h+'-'+this.sClass+'.png';
     this.o.style.width = this.w+'px';
     this.o.style.height = this.h+'px';
@@ -273,10 +296,6 @@ function XLSF(oTarget) {
     this.soundID = 'smash'+this.glassType;
     var panValue = xlsf.soundPan.panValue; // eg. +/- 80%
     this.pan = parseInt(this.x<=xlsf.soundPan.mid?-panValue+((this.x/xlsf.soundPan.mid)*panValue):(this.x-xlsf.soundPan.mid)/(xlsf.soundPan.right-xlsf.soundPan.mid)*panValue);
-
-    this.initSound = function() {
-      // soundManager.createSound({id:self.soundID,url:urlBase+'sound/glass'+this.glassType+'.mp3',autoLoad:true,pan:self.pan});
-    }
 
     this.setBGPos = function(x,y) {
       self.o.style.backgroundPosition = ((self.bgBaseX+x)+'px '+(self.bgBaseY+y)+'px');
@@ -317,7 +336,6 @@ function XLSF(oTarget) {
     }
 
     this.explode = function(e) {
-      // self.oExplosion = new Explosion(self.nType,self.sClass,self.x,self.y);
       self.oExplosion.trigger(0,1); // boooom!
     }
 
@@ -336,7 +354,17 @@ function XLSF(oTarget) {
       } else {
         self.setBGPos(self.w*-rndFrame,0);
       }
+      if (!useFollow && !useAngle && transforms.prop) {
+        self.o.style[transforms.prop] = 'rotate('+Math.random()*plusMinus(20)+'deg)';
+      }
       xlsf.lightSmashCounter++;
+      for (var i=activeLights.length; i--;) {
+        // find this in the active array, and take it out
+        if (activeLights[i] === self) {
+          activeLights.splice(i,1);
+          break;
+        }
+      }
       // xlsf.doNukeCheck();
       // window.setTimeout(self.reset,3000); // respawn
     }
@@ -355,15 +383,11 @@ function XLSF(oTarget) {
     }
 
     this.init = function() {
-      self.o.className = 'xlsf-light '+this.sizeClass+' '+this.sClass;
+      self.o.className = classBase+' '+this.sizeClass+' '+this.sClass;
       self.o.style.left = self.x+'px';
       self.o.style.top = self.y+'px';
       self.o.style.width = self.w+'px';
       self.o.style.height = self.h+'px';
-      // self.o.onmouseover = self.toggle;
-      // self.o.onmouseout = self.toggle;
-      self.o.onmouseover = self.smash;
-      self.o.onclick = self.smash;
       self.flickr();
       xlsf.oFrag.appendChild(self.o);
       self.oExplosion = new Explosion(self.nType,self.sClass,self.x,self.y);
@@ -373,8 +397,9 @@ function XLSF(oTarget) {
     
   } // Light()
 
-  this.createLight = function(sClass,nType,x,y) {
-    var oLight = new Light(self.lightClass,sClass,nType,x,y);
+  this.createLight = function(sClass,nType,x,y,row,col) {
+    var oLight = new Light(self.lightClass,sClass,nType,x,y,row,col);
+    activeLights.push(oLight);
     self.lightGroups[sClass].push(oLight);
     self.lights.push(oLight);
     return oLight;
@@ -392,23 +417,35 @@ function XLSF(oTarget) {
   this.randomLights = function() {
     self.lights[parseInt(Math.random()*self.lights.length)].toggle();
   }
-
   
   this.destroyLights = function() {
-    self.startSequence(self.destroyLight,20);    
+    // reset counter
+    self.lightSmashCounter = 0;
+    self.startSequence(Math.random()>0.75?self.destroyLight:self.destroyRandom,33);
+  }
+
+  this.destroyRandom = function() {
+    for (var i=2; i--;) {
+      if (activeLights.length) {
+        activeLights[parseInt(Math.random()*activeLights.length)].smash();
+      }
+    }
   }
 
   this.destroyLight = function() {
     var groupSize = 2; // # to smash at a time
     if (self.lightSmashCounter<self.lights.length) {
       var limit = Math.min(self.lightSmashCounter+groupSize,self.lights.length);
+      var reverseLimit = Math.max(0, self.lights.length-self.lightSmashCounter-groupSize);
       for (var i=self.lightSmashCounter; i<limit; i++) {
-        self.lights[self.lightSmashCounter].smash();
+        if (self.lights[self.lightSmashCounter]) {
+          self.lights[self.lightSmashCounter].smash();
+        }
+        self.lights[self.lights.length-self.lightSmashCounter].smash();
       }
     } else {
       self.stopSequence();
     }
-
   }
 
   this.uberSmash = function() {
@@ -444,6 +481,31 @@ function XLSF(oTarget) {
     }
   }
 
+  var typeMaps = {
+    'tiny': {
+      '0bottom': 0,
+      '0top': 3,
+      '1bottom': 1,
+      '1top': 2,
+      '2bottom': 2,
+      '2top': 1,
+      '3bottom': 3,
+      '3top': 0
+    },
+    'other': {
+      '0bottom': 3,
+      '0top': 3,
+      '1bottom': 2,
+      '1top': 2,
+      '2bottom': 1,
+      '2top': 1,
+      '3bottom': 0,
+      '3top': 0
+    }
+  }
+
+  var typeMap = typeMaps[(this.lightClass === 'tiny' ? 'tiny' : 'other')];
+
   var i=0;
 
 /*
@@ -468,12 +530,12 @@ function XLSF(oTarget) {
     var screenY = (document.documentElement.clientHeight||document.body.clientHeight||document.body.scrollHeight);
   }
 
-  var jMax = Math.floor((screenX-16)/self.lightXY);
-  var iMax = Math.floor((screenY-16)/self.lightXY);
+  var jMax = Math.floor((screenX)/self.lightXY);
+  var iMax = Math.floor((screenY-12)/self.lightXY);
 
   for (i=0; i<iMax; i++) {
     for (j=0; j<jMax; j++) {
-	  this.createLight((i+1)%2==0?'bottom':'top',i%3,j*self.lightXY,i*self.lightXY);
+	  this.createLight((i+1)%2==0?'bottom':'top',i%4,j*self.lightXY,i*self.lightXY,j,i);
     }
   }
 
@@ -488,14 +550,80 @@ function XLSF(oTarget) {
 
   this.appendLights();
 
-  // post-load/init case in the event this object is created late
-  // if (soundManager && soundManager._didInit && !soundManager._disabled) this.initSounds();
+  function followMouseMove(e) {
+    if (!self.lights.length) {
+      return false;
+    }
+    var x = lastMouseX;
+    var y = lastMouseY;
+    var x2 = null;
+    var y2 = null;
+    var angle = 0;
+    var light = null;
+    for (var i=self.lights.length; i--;) {
+      light = self.lights[i];
+      if (light && !light.broken) {
+        x2 = light.x;
+        y2 = light.y;
+        angle = Math.atan2((y-y2),(x-x2))*(180/Math.PI);
+        if (light.col%2 === 0) { 
+          angle += (270*180/Math.PI);
+        }
+        if (transforms.prop) {
+          light.o.style[transforms.prop] = 'rotate('+angle+'deg)';
+        }
+      }
+    }
+    mmhTimer = null;
+  }
+
+  function mouseOrTouchMove(e) {
+    // coordinate -> row/col check, smashy smash
+    var x, y, lightIndex;
+    if (e.targetTouches) {
+      if (e.targetTouches.length === 1) {
+        x = e.targetTouches[0].clientX;
+        y = e.targetTouches[0].clientY;
+      }
+    } else {
+      x = e.clientX;
+      y = e.clientY;
+    }
+    lightCol = Math.floor((x/(self.lightClasses[self.lightClass]*jMax)*jMax)),
+    lightRow = Math.floor((y/(self.lightClasses[self.lightClass]*iMax)*iMax))
+    lightIndex = (jMax*lightRow)+lightCol;
+    if (self.lights[lightIndex]) {
+      self.lights[lightIndex].smash();
+    }
+    if (useFollow) {
+      lastMouseX = x;
+      lastMouseY = y;
+      if (!mmhTimer) {
+        mmhTimer = window.setTimeout(followMouseMove, 33); // try to be nice and throttle this call, which may be expensive
+      }
+    }
+  }
+
+  if (isTouchDevice && self.oTarget !== document.documentElement) { 
+    self.oTarget.addEventListener('touchstart', function(e) {
+      self.oTarget.addEventListener('touchmove', mouseOrTouchMove, false);
+      self.oTarget.addEventListener('touchend', function(e) {
+        self.oTarget.removeEventListener('touchMove', mouseOrTouchMove);
+      });
+      mouseOrTouchMove(e); // initial touch might be a smashy one, too
+      e.preventDefault();
+      return false;
+    }, false);
+  } else {
+    if (document.addEventListener) {
+      document.addEventListener('mousemove', mouseOrTouchMove, false);
+    } else if (document.attachEvent) {
+      document.attachEvent('onmousemove', mouseOrTouchMove);
+    }
+  }
 
   this.startSequence(self.randomLights);
 
-  // setTimeout(this.destroyLights,10000);
-  // setTimeout(this.uberSmash,10000);
-  
 } // --- XLSF2007()
 
 var xlsf = null;
@@ -508,12 +636,10 @@ function smashInit() {
 
 soundManager.url = '../../swf/';
 soundManager.flashVersion = 9;
+soundManager.useHighPerformance = true;
+soundManager.wmode = 'transparent';
 soundManager.debugMode = false;
 
-soundManager.onload = function() {
-  setTimeout(smashInit,500);
-}
-
-soundManager.onerror = function() {
-  setTimeout(smashInit,500);
-}
+// start in either case
+soundManager.onready(smashInit);
+soundManager.ontimeout(smashInit);

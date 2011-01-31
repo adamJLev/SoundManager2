@@ -37,12 +37,10 @@ package {
   import flash.utils.clearInterval;
   import flash.utils.Dictionary;
   import flash.utils.Timer;
-  import flash.xml.XMLDocument;
-  import flash.xml.XMLNode;
 
   public class SoundManager2_AS3 extends Sprite {
 
-    public var version:String = "V2.97a.20101010";
+    public var version:String = "V2.97a.20110123";
     public var version_as:String = "(AS3/Flash 9)";
 
     /*
@@ -124,7 +122,6 @@ package {
           ExternalInterface.addCallback('_externalInterfaceTest', _externalInterfaceTest);
           ExternalInterface.addCallback('_disableDebug', _disableDebug);
           ExternalInterface.addCallback('_getMemoryUse', _getMemoryUse);
-          ExternalInterface.addCallback('_loadFromXML', _loadFromXML);
           ExternalInterface.addCallback('_createSound', _createSound);
           ExternalInterface.addCallback('_destroySound', _destroySound);
           ExternalInterface.addCallback('_setAutoPlay', _setAutoPlay);
@@ -292,7 +289,15 @@ package {
           nD = int(oSound.duration || 0); // can sometimes be null with short MP3s? Wack.
           nP = oSound.ns.time * 1000;
 
-          if (nP != oSound.lastValues.position) {
+          if (oSound.paused) {
+            // special case: paused netStreams don't update if setPosition() is called while they are paused.
+            // instead, return lastValues.position which should reflect setPosition() call.
+            // writeDebug('paused case, setting nP of '+nP+' to -1');
+            // writeDebug('lastValues: '+oSound.lastValues.position);
+            nP = oSound.lastValues.position;
+          }
+
+          if (nP >= 0 && nP != oSound.lastValues.position) {
             oSound.lastValues.position = nP;
             hasNew = true;
           }
@@ -380,7 +385,9 @@ package {
             oSound.lastValues.bytes = bL;
             ExternalInterface.call(sMethod, bL, bT, nD);
           }
+
         }
+
         // peak data
         if (oSoundChannel && oSound.usePeakData) {
           if (lP != oSound.lastValues.leftPeak) {
@@ -394,69 +401,60 @@ package {
         }
 
         var newDataError:Boolean = false;
-        var dataErrors:Array = [];
+        var dataError:String;
 
         // special case: Netstream may try to fire whileplaying() after finishing. check that stop hasn't fired.
         isPlaying = (oSound.didLoad && !oSound.paused && (!oSound.useNetstream || (oSound.useNetstream && oSound.lastNetStatus != "NetStream.Play.Stop"))); // don't update if stream has ended
 
         // raw waveform + EQ spectrum data
-        if (isPlaying && oSoundChannel || oSound.useNetstream) {
+        if (isPlaying && oSoundChannel) { // || oSound.useNetstream)) {
+
           if (oSound.useWaveformData) {
-            if (areSoundsInaccessible == false) {
+            if (!areSoundsInaccessible && !oSound.handledDataError && !oSound.ignoreDataError) {
               try {
                 oSound.getWaveformData();
               } catch(e: Error) {
-                // this shouldn't happen, but does seem to fire from time to time.
-                writeDebug('getWaveformData() warning: ' + e.toString());
-              }
-            } else if (oSound.handledDataError != true && oSound.ignoreDataError != true) {
-              try {
-                oSound.getWaveformData();
-              } catch(e: Error) {
-                writeDebug('getWaveformData() (waveform data) '+e.toString());
+                if (!oSound.handledDataError) {
+                  writeDebug('getWaveformData() (waveform data) '+e.toString());
+                }
                 // oSound.useWaveformData = false;
                 newDataError = true;
-                dataErrors.push(e.toString());
-                oSound.handledDataError = true;
+                dataError = e.toString();
               }
             }
           }
+
           if (oSound.useEQData) {
-            if (areSoundsInaccessible == false) {
+            if (!areSoundsInaccessible && !oSound.handledDataError && !oSound.ignoreDataError) {
               try {
                 oSound.getEQData();
               } catch(e: Error) {
-                writeDebug('getEQData() warning: ' + e.toString());
-                newDataError = true;
-                dataErrors.push(e.toString());
-                oSound.handledDataError = true;
-              }
-            } else if (oSound.handledDataError != true && oSound.ignoreDataError != true) {
-              try {
-                oSound.getEQData();
-              } catch(e: Error) {
-                // writeDebug('computeSpectrum() (EQ data) '+e.toString());
+                if (!oSound.handledDataError) {
+                  writeDebug('computeSpectrum() (EQ data) '+e.toString());
+                }
                 // oSound.useEQData = false;
                 newDataError = true;
-                dataErrors.push(e.toString());
-                oSound.handledDataError = true;
+                dataError = e.toString();
               }
             }
           }
+
           if (oSound.waveformDataArray != oSound.lastValues.waveformDataArray) {
             oSound.lastValues.waveformDataArray = oSound.waveformDataArray;
             newWaveformData = true;
           }
+
           if (oSound.eqDataArray != oSound.lastValues.eqDataArray) {
             oSound.lastValues.eqDataArray = oSound.eqDataArray;
             newEQData = true;
           }
-        }
 
-        if (newDataError) {
+          if (newDataError && !oSound.handledDataError) {
             sMethod = baseJSObject + "['" + sounds[i] + "']._ondataerror";
-            var errors:String = dataErrors.join('<br>\n');
-            ExternalInterface.call(sMethod, 'data unavailable: ' + errors);
+            ExternalInterface.call(sMethod, 'data unavailable: ' + dataError);
+            oSound.handledDataError = true;
+          }
+
         }
 
         if (typeof nP != 'undefined' && hasNew) { // && isPlaying - removed to allow updates while paused, eg. from setPosition() calls
@@ -580,11 +578,10 @@ package {
       }
       if (s.useNetstream) {
         // Minimize the buffer so playback starts ASAP
-        s.setBuffer(s.getStartBuffer());
+        s.ns.bufferTime = s.bufferTime;
         writeDebug('setPosition: setting buffer to '+s.ns.bufferTime+' secs');
 
         nSecOffset = nSecOffset > 0 ? nSecOffset / 1000 : 0;
-        writeDebug('setPosition: ' + nSecOffset);
         s.ns.seek(nSecOffset);
         checkProgress(); // force UI update
       } else {
@@ -634,14 +631,12 @@ package {
         ns.useEQData = s.useEQData;
         ns.useNetstream = s.useNetstream;
         ns.bufferTime = s.bufferTime;
-        ns.bufferTimes = s.bufferTimes;
         ns.serverUrl = s.serverUrl;
         ns.duration = s.duration;
-        ns.recordStats = s.recordStats;
         ns.checkPolicyFile = s.checkPolicyFile;
         ns.useEvents = true;
         _destroySound(s.sID);
-        _createSound(ns.sID, sURL, ns.justBeforeFinishOffset, ns.usePeakData, ns.useWaveformData, ns.useEQData, ns.useNetstream, ns.bufferTime, ns.loops, ns.serverUrl, ns.duration, bAutoPlay, ns.useEvents, ns.bufferTimes, ns.recordStats, bAutoLoad, ns.checkPolicyFile);
+        _createSound(ns.sID, sURL, ns.justBeforeFinishOffset, ns.usePeakData, ns.useWaveformData, ns.useEQData, ns.useNetstream, ns.bufferTime, ns.loops, ns.serverUrl, ns.duration, bAutoPlay, ns.useEvents, bAutoLoad, ns.checkPolicyFile);
         s = soundObjects[sID];
         // writeDebug('Sound object replaced');
       }
@@ -659,23 +654,16 @@ package {
       // don't try to load if same request already made
       s.sURL = sURL;
 
-      if (s.useNetstream) {
-        try {
-          s.useEvents = true;
-          s.ns.play(sURL);
-        } catch(e: Error) {
-          writeDebug('_load(): error: ' + e.toString());
-        }
-      } else {
-        try {
+      try {
+        if (!s.useNetstream) {
           s.addEventListener(IOErrorEvent.IO_ERROR, function(e: IOErrorEvent) : void {
             s.doIOError(e);
           });
-          s.loadSound(sURL, bStream);
-        } catch(e: Error) {
-          // oh well
-          writeDebug('_load: Error loading ' + sURL + '. Flash error detail: ' + e.toString());
         }
+        s.loadSound(sURL);
+      } catch(e: Error) {
+        // oh well
+        writeDebug('_load: Error loading ' + sURL + '. Flash error detail: ' + e.toString());
       }
 
       s.didJustBeforeFinish = false;
@@ -728,21 +716,19 @@ package {
       ns.useEQData = s.useEQData;
       ns.useNetstream = s.useNetstream;
       ns.bufferTime = s.bufferTime;
-      ns.bufferTimes = s.bufferTimes;
       ns.serverUrl = s.serverUrl;
       ns.duration = s.duration;
       ns.autoPlay = s.autoPlay;
-      ns.recordStats = s.recordStats;
       ns.autoLoad = s.autoLoad;
       ns.checkPolicyFile = s.checkPolicyFile;
       _destroySound(s.sID);
-      _createSound(ns.sID, sURL, ns.justBeforeFinishOffset, ns.usePeakData, ns.useWaveformData, ns.useEQData, ns.useNetstream, ns.bufferTime, ns.loops, ns.serverUrl, ns.duration, ns.autoPlay, false, ns.bufferTimes, ns.recordStats, ns.autoLoad, ns.checkPolicyFile); // false: don't allow events just yet
+      _createSound(ns.sID, sURL, ns.justBeforeFinishOffset, ns.usePeakData, ns.useWaveformData, ns.useEQData, ns.useNetstream, ns.bufferTime, ns.loops, ns.serverUrl, ns.duration, ns.autoPlay, false, ns.autoLoad, ns.checkPolicyFile); // false: don't allow events just yet
       soundObjects[sID].connected = true; // fake it?
       writeDebug(s.sID + '.unload(): ok');
     }
 
-    public function _createSound(sID:String, sURL:String, justBeforeFinishOffset: int, usePeakData: Boolean, useWaveformData: Boolean, useEQData: Boolean, useNetstream: Boolean, bufferTime:Number, loops:Number, serverUrl:String, duration:Number, autoPlay:Boolean, useEvents:Boolean, bufferTimes:Array, recordStats:Boolean, autoLoad:Boolean, checkPolicyFile:Boolean) : void {
-      var s: SoundManager2_SMSound_AS3 = new SoundManager2_SMSound_AS3(this, sID, sURL, usePeakData, useWaveformData, useEQData, useNetstream, bufferTime, serverUrl, duration, autoPlay, useEvents, bufferTimes, recordStats, autoLoad, checkPolicyFile);
+    public function _createSound(sID:String, sURL:String, justBeforeFinishOffset: int, usePeakData: Boolean, useWaveformData: Boolean, useEQData: Boolean, useNetstream: Boolean, bufferTime:Number, loops:Number, serverUrl:String, duration:Number, autoPlay:Boolean, useEvents:Boolean, autoLoad:Boolean, checkPolicyFile:Boolean) : void {
+      var s: SoundManager2_SMSound_AS3 = new SoundManager2_SMSound_AS3(this, sID, sURL, usePeakData, useWaveformData, useEQData, useNetstream, bufferTime, serverUrl, duration, autoPlay, useEvents, autoLoad, checkPolicyFile);
       if (!soundObjects[sID]) {
         sounds.push(sID);
       }
@@ -861,7 +847,7 @@ package {
         // writeDebug('_pause(): position: '+s.lastValues.position);
         if (s.useNetstream) {
           if (s.ns) {
-            s.lastValues.position = s.ns.time;
+            s.lastValues.position = s.ns.time*1000;
             s.ns.pause();
           } else if (s.autoPlay) {
             s.setAutoPlay(false);
@@ -922,44 +908,9 @@ package {
       return System.totalMemory.toString();
     }
 
-    // XML handler stuff
-    public function _loadFromXML(sURL:String) : void {
-      var loader: URLLoader = new URLLoader();
-      loader.addEventListener(Event.COMPLETE, parseXML);
-      writeDebug('Attempting to load XML: ' + sURL);
-      try {
-        loader.load(new URLRequest(sURL));
-      } catch(e: Error) {
-        writeDebug('Error loading XML: ' + e.toString());
-      }
-    }
-
-    public function parseXML(e: Event) : void {
-      try {
-        var oXML: XMLDocument = new XMLDocument();
-        oXML.ignoreWhite = true;
-        oXML.parseXML(e.target.data);
-        var xmlRoot: XMLNode = oXML.firstChild;
-        var xmlAttr:Object = xmlRoot.attributes;
-        var oOptions:Object = {};
-        var i: int = 0;
-        var j: int = 0;
-        for (i = 0, j = xmlRoot.childNodes.length; i < j; i++) {
-          xmlAttr = xmlRoot.childNodes[i].attributes;
-          oOptions = {
-            id: xmlAttr.id,
-            url: xmlRoot.attributes.baseHref + xmlAttr.href,
-            stream: xmlAttr.stream
-          }
-          ExternalInterface.call(baseJSController + ".createSound", oOptions);
-        }
-      } catch(e: Error) {
-        writeDebug('Error parsing XML: ' + e.toString());
-      }
-    }
-
     // -----------------------------------
     // end methods
+
   }
 
   // package

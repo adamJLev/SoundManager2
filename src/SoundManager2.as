@@ -36,7 +36,7 @@ class SoundManager2 {
 
   function SoundManager2() {
 
-    var version = "V2.97a.20101010";
+    var version = "V2.97a.20110123";
     var version_as = "(AS2/Flash 8)";
 
     /*
@@ -66,7 +66,6 @@ class SoundManager2 {
     var sounds = []; // indexed string array
     var soundObjects = []; // associative Sound() object array
     var timer = null;
-    var timerInterval = 50;
     var pollingEnabled = false; // polling (timer) flag - disabled by default, enabled by JS->Flash call
     var debugEnabled = true; // Flash debug output enabled by default, disabled by JS call
     var flashDebugEnabled = false; // debug output to flash movie, off by default
@@ -266,11 +265,13 @@ class SoundManager2 {
 
     var _unload = function(sID, sURL) {
       // effectively "stop" loading by loading a tiny MP3
-      // writeDebug('_unload()');
       var s = soundObjects[sID];
       s.onID3 = null;
       s.onLoad = null;
       s.loaded = false;
+      // ensure position is reset, if unload fails
+      s.start(0,1);
+      s.stop();
       s.loadSound(sURL, true);
       s.stop(); // prevent auto-play
       s.didJustBeforeFinish = false;
@@ -355,7 +356,10 @@ class SoundManager2 {
       soundObjects[sID].setVolume(nVol);
     }
 
-    var _setPolling = function(bPolling) {
+    var _setPolling = function(bPolling, timerInterval) {
+      if (typeof timerInterval === 'undefined') {
+        timerInterval = 50;
+      }
       pollingEnabled = bPolling;
       if (timer == null && pollingEnabled) {
         writeDebug('Enabling polling, ' + timerInterval + ' ms interval');
@@ -365,43 +369,6 @@ class SoundManager2 {
         clearInterval(timer);
         timer = null;
       }
-    }
-
-    // XML handler stuff
-    var parseXML = function(oXML) {
-      var xmlRoot = oXML.firstChild;
-      var xmlAttr = xmlRoot.attributes;
-      var oOptions = {};
-      for (var i = 0, j = xmlRoot.childNodes.length; i < j; i++) {
-        xmlAttr = xmlRoot.childNodes[i].attributes;
-        oOptions = {
-          id: xmlAttr.id,
-          url: xmlRoot.attributes.baseHref + xmlAttr.href,
-          stream: xmlAttr.stream
-        }
-        ExternalInterface.call(baseJSController + ".createSound", oOptions);
-      }
-    }
-
-    var xmlOnloadHandler = function(ok) {
-      if (ok) {
-        writeDebug("XML loaded");
-        parseXML(this);
-      } else {
-        writeDebug('XML load failed');
-      }
-    }
-
-    // ---
-    var _loadFromXML = function(sXmlUrl) {
-      writeDebug("_loadFromXML(" + sXmlUrl + ")");
-      // ExternalInterface.call(baseJSController+"._writeDebug","_loadFromXML("+sXmlUrl+")");
-      // var oXmlHandler = new XMLHandler(sXmlUrl);
-      var oXML = new XML();
-      oXML.ignoreWhite = true;
-      oXML.onLoad = xmlOnloadHandler;
-      writeDebug("Attempting to load XML: " + sXmlUrl);
-      oXML.load(sXmlUrl);
     }
 
     var _init = function() {
@@ -420,7 +387,6 @@ class SoundManager2 {
         ExternalInterface.addCallback('_setPolling', this, _setPolling);
         ExternalInterface.addCallback('_externalInterfaceTest', this, _externalInterfaceTest);
         ExternalInterface.addCallback('_disableDebug', this, _disableDebug);
-        ExternalInterface.addCallback('_loadFromXML', null, _loadFromXML);
         ExternalInterface.addCallback('_createSound', this, _createSound);
         ExternalInterface.addCallback('_destroySound', this, _destroySound);
       } catch(e) {

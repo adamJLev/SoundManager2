@@ -128,11 +128,12 @@
 			
 			<div class="c2">
 				<h3>Download SoundManager 2</h3>
-				<p>Code cleanup (full debug codebase ~5% lighter), HTML5 audio tweaks, merged RTMP fork from GitHub, experimental video feature <i>removed</i>, optional crossdomain.xml feature. See <a href="#history">revision history</a> for details.</p>
+				<p><b>Latest changes:</b> HTML5 audio improvements for desktop + mobile (iOS), 360&deg; UI demo improvements, MovieStar scrubbing. See <a href="#history">revision history</a> for details.</p>
 				
-				<p style="padding-top:0.5em"><a href="../../download/soundmanagerv297a-20101010.zip" title="Download SoundManager 2" class="norewrite feature">Download SoundManager 2.97a.20101010</a></p>
-				<p style="padding-top:0.5em">Also on Github (dev branches, forks etc.): <a href="http://github.com/scottschiller/SoundManager2">http://github.com/scottschiller/SoundManager2</a></p>
-				<p><b>Performance tip:</b> SM2's code size varies from 90 KB (debug) down to 10 KB (optimized) over HTTP; check the <a href="../getstarted/#basic-inclusion" title="Including SoundManager 2 on your site: Script build options">pre-optimized builds</a> for details.</p>
+				<p style="padding-top:0.5em"><a href="../../download/soundmanagerv297a-20110123.zip" title="Download SoundManager 2" class="norewrite feature">Download SoundManager 2.97a.20110123</a></p>
+				<p style="padding-top:0.5em">Also on Github (dev branches, forks etc.): <a href="http://github.com/scottschiller/SoundManager2">http://github.com/scottschiller/SoundManager2</a> - Related: <a href="http://www.flickr.com/photos/schill/5305386425/">A year of commits</a> (Gource visualization)</p>
+				<p><b>Performance tip:</b> SM2's code size varies from 100 KB (commented, debug-enabled) down to 10 KB (optimized) over HTTP; check the <a href="../getstarted/#basic-inclusion" title="Including SoundManager 2 on your site: Script build options">pre-optimized builds</a> for details.</p>
+				<p><b>Side reading:</b> <a href="http://24ways.org/2010/the-state-of-html5-audio">"Probably, Maybe, No": The State of HTML5 Audio</a>, an article written for 24ways.org touching on some of the issues and future promise of audio in HTML.</p>
 			</div>
 			
 		</div>
@@ -155,9 +156,153 @@
 
 			  <ul id="revision-list" class="standard">
 
+			   <li id="sm2-20110123" class="in">
+			    <h3><b>V2.97a.20110123</b> - HTML5 audio improvements for desktop + mobile (iOS), 360&deg; UI demo tweaks</h3>
+
+				<p>Tweaks to HTML5 features, "mixed-mode" HTML5 + flash cases, desktop and iOS tweaks. Improved sound re-use and "play-through" on iOS (believed previously working, may have regressed with iOS 4.2.1.) Code clean-up and shuffling of homepage, 360&deg; demo (jslinted and improved functionality), <code>load({options})</code> fix, better handling of broken Safari/Snow Leopard audio case.</p>
+				
+			    <ul class="double">
+			
+			     <li class="in">
+				  <p class="compact">Bug fixes</p>
+				  <ul class="nested compact flat">
+                   <li>Fix for <code>soundManager.load({options})</code> / <code>SMSound.load({options})</code>-specific case (regular <code>load()</code> sans-parameters was fine), where <code>load({onload:...})</code> would fail if a URL parameter was not specified. <code>load({url:...,onload:...})</code> was OK. If unspecified, load now takes URL from SMSound.url.</li>
+                   <li>Fixed unload/replay case on iOS: play sound #1, interrupt it by starting sound #2, then play sound #1 again - previously, #1 would fail on replay due to interrupted state since iOS only allows one sound at a time. Should now restart OK. (This applies to the new <code>soundManager.useGlobalHTML5Audio</code> stuff.) Playlist auto-advance looks to be OK as well.</li>
+				  </ul>
+			     </li>
+
+			     <li id="sm2-20110123-api" class="in">
+				  <p class="compact">API Updates</p>
+				  <ul class="nested compact flat">
+				   <li>New (experimental) <code>soundManager.useGlobalHTML5Audio</code> property - if true (default for iOS/mobile), reuses a single <code>Audio()</code> object for loading sound. Helps make playlist / <code>onfinish()</code>-&gt;<code>play()</code> work on iOS without user interaction.</li>
+				   <li>New (experimental) <code>soundManager.requireFlash</code> property (default: false.) If true, prevents HTML5-only mode on devices with both HTML5 and Flash. May be useful when HTML5 is enabled (and can play MP3), but Flash is desired to play RTMP content etc. As of this version, will only use Flash for RTMP.</li>
+				   <li>HTML5: Fix for <code>type:'audio/mp3'</code> returning false on <code>canPlay()</code>. Timer update-while-paused tweak.</li>
+                   <li>HTML5: More event listeners, ignore events on destroyed sounds, improved event clean-up, "seek before load" fix</li>
+				  </ul>
+				 </li>
+
+			     <li class="in">
+				  <p class="compact">Miscellaneous</p>
+				  <ul class="nested compact flat">
+				   <li>Improved broken Safari/Snow Leopard HTML5 audio situation: HTML5 mode is no longer disabled - and if available, Flash is used to play MP3/MP4 content to work around known playback issues with native HTML5 audio.</li>
+				   <li>(Finally) report "true" position of MovieStar (MPEG4/AAC) content while scrubbing a playing/paused sound. Previously did not fire updates while scrubbing. Imperfect on resume due to buffer, but should be negligible and an improvement vs. old behaviour.</li>
+                   <li>360&deg; player refresh, works with multiple types (eg. small 48x48 square vs. large 256x256 square w/spectrum + EQ visualizations) on the same page now. Can play and seek simultaneously, as well. More configurable. Removed old empty.gif + imageRoot junk. Core JS now appeases the jslint gods.</li>
+                   <li>Code clean-up, removed undocumented/experimental <code>playOnSeek</code> and related methods from a prior fork.</li>
+                   <li>Fresh homepage demo design/layout, should be nicer for new users.</li>
+			      </ul>
+			     </li>
+
+			    </ul>
+		       </li>
+
+			   <li id="sm2-20110101" class="in">
+			    <h3><b>V2.97a.20110101</b> - Simplified <code>onready()</code> behaviour (see <a href="#sm2-20110101-api" class="warning">potential <code>onready()</code> regression note</a>), new <code>ontimeout()</code> handler, Webkit + MovieStar 30-second-pause fix (<a href="../../download/soundmanagerv297a-20110101.zip" title="Download SoundManager 2" class="norewrite">Download archived version</a>)</h3>
+				<p><code>onready()</code> is now called only for SM2 init success (makes default case easier, no need for "supported" check) - new <code>ontimeout()</code> is called only for failure case, ie., flash blocked/missing. Special Webkit/MovieStar won't-resume-after-30-seconds-paused fix. <code>soundManager.supported()</code> renamed to <code>soundManager.ok()</code> (old method aliased for the time being.)</p>
+				
+			    <ul class="double">
+			
+			     <li class="in">
+				  <p class="compact">Bug fixes</p>
+				  <ul class="nested compact flat">
+                   <li>Special bad case, Webkit/Flash+MovieStar (AAC/MPEG4/RTMP-only, not MP3): sounds don't resume after being paused for 30+ seconds(?), but <code>setPosition()</code> with current position gets things going again after a <code>resume()</code> attempt. Reported via <a href="http://8tracks.com/">8tracks</a> dudes.</li>
+				  </ul>
+			     </li>
+
+			     <li id="sm2-20110101-api" class="in">
+				  <p class="compact">API Updates</p>
+				  <ul class="nested compact flat">
+				   <li>
+					<p>In previous releases, the <a href="../#soundmanager-onready" title="soundManager.onready() documentation">soundManager.onready()</a> queue would be processed for both OK and failure cases. The <code>onready()</code> queue is now processed only if successful initialisation occurs, making old "supported" checks within the <code>onready()</code> handlers redundant.</p>
+					<p><span class="warning">Potential regression note</span>: Old error case handling within <code>onready()</code> will never execute as a result of this change. Update your code to use the new explicit <a href="../#soundmanager-ontimeout" title="soundManager.ontimeout() documentation">soundManager.ontimeout()</a> handler instead.</p>
+
+<div style="display:inline-block;vertical-align:top;margin-right:2em">
+                    <p class="compact"><b>Old <code>onready()</code> method</b></p>
+<pre class="block"><code>soundManager.onready(function(){
+  if (soundManager.supported()) {
+    <span>// OK, play sound etc.</span>
+  } else {
+    <span>// SM2 could not start; message user?</span>
+  }
+});</code></pre>
+</div>
+
+<div style="display:inline-block;vertical-align:top">
+                    <p class="compact"><b>New <code>onready()</code> / <code>ontimeout()</code> method</b></p>
+<pre class="block"><code>soundManager.onready(function(){
+  <span>// OK, play sound etc.</span>
+});
+
+soundManager.ontimeout(function(){
+  <span>// SM2 could not start; message user?</span>
+});</code></pre>
+</div>
+
+					</li>
+                   <li>New <a href="../#soundmanager-ontimeout" title="soundManager.ontimeout()">soundManager.ontimeout(myFunction)</a> method, for asynchronous queueing of init failure handlers. Fired only when SoundManager 2 is unable to initialise (usually due to blocked/missing flash, or flash security error.) Queue behaviour is the same style as <code>onready()</code>.</li>
+				  </ul>
+				 </li>
+
+			     <li class="in">
+				  <p class="compact">Miscellaneous</p>
+				  <ul class="nested compact flat">
+                   <li>Code cleanup: Took the unsupported "jsAMP" demo (2007 prototype) out back and shot it.</li>
+                   <li>360&deg; UI demo: New "allowMultiple" config option, let 2+ sounds play at once etc. (Default: false, one at a time.)</li>
+                   <li>360&deg; UI, canvas visualization demo: Minor layout, UI, code tweaks</li>
+                   <li>API/docs/demos reference and use updated onready()/ontimeout() methods.</li> 
+			      </ul>
+			     </li>
+
+			    </ul>
+		       </li>
+
 			   <li class="in">
-			    <h3><b>V2.97a.20101010</b> - Code cleanup, HTML5 audio tweaks, merged RTMP fork, removal of experimental video, optional usePolicyFile crossdomain.xml feature</h3>
-				<p>Shuffling of SoundManager 2 core, approximately 5% shaved off full debug-enabled file size after bug fixes, additional comments, new features and so on. Internal event handling code cleaned up. .SWF builds optimized, Flash 9 non-debug version now under 10 KB. Debug version now flash debugger-enabled. Merged GitHub user kjvarga's RTMP fork including improvements for Red5 + Flash Media Server streaming cases - buffering, event and state handling. Experimental video feature is toast, createVideo() no longer implemented. iPhone + iPad touch events on page player + 360&deg; player UI demos; tap and drag to seek, etc.</p>
+			    <h3><b>V2.97a.20101221</b> - HTML5 loading/progress and RTMP tweaks, <code>onready()</code> double-firing fix, <code>hasPriority</code> for mobile flash, Muxtape-style player now AJAX-friendly (<a href="../../download/soundmanagerv297a-20101221.zip" title="Download SoundManager 2" class="norewrite">Download archived version</a>)</h3>
+				<p>Improved HTML5 <code>whileloading()</code> / <code>whileplaying()</code>, <code>unload</code> and event handling. <code>hasPriority</code> for off-screen SWF loading on mobile, replaces old mobileFlash positioning tricks. Effectively re-wrote page player (Muxtape-style) demo to use event delegation + read live DOM, so should not break in AJAX cases. RTMP <code>onplay()</code> / <code>play()</code> / <code>buffering</code> fixes, <code>setPosition()</code> regression fix.</p>
+				
+			    <ul class="double">
+			
+			     <li class="in">
+				  <p class="compact">Bug fixes</p>
+				  <ul class="nested compact flat">
+                   <li>Double <code>onready()</code>-firing bug (HTML5 and non-flashblock case) fixed.</li>
+				   <li>HTML5: Don't request null/about:blank URL with <code>unload()</code>, may hang/JS error in Chrome and IE 9 preview 7.</li>
+				   <li>RTMP: Ensure <code>onplay()</code> is called for auto-loading streams when resumed. Don't call <code>play()</code> until connected. <code>play()</code> sets flash pauseOnBufferFull = false (fix for reported "<a href="http://getsatisfaction.com/schillmania/topics/rtmp_not_playing_audio#reply_3956421">RTMP not playing audio</a>" issue.)</li>
+                   <li>overHTTP was likely returning incorrect values previously - now fixed.</li>
+                   <li><code>unload()</code> tweak: Ensure <code>position</code> is reset to 0 if <code>unload()</code> fails</li>
+                   <li>Flash audio: Log metaDataHandler info if debug enabled, possible <code>duration</code> metaData fix</li>
+				   <li>No HTML5 audio for <i>any</i> Safari on OS X Snow Leopard 10.6.[3|4|5] due to underlying bugs causing intermittent audio playback failure; ongoing Apple issue, on their radar. Amusingly, Safari on Windows appears to be fine.</li>
+				  </ul>
+			     </li>
+
+			     <li class="in">
+				  <p class="compact">API Updates</p>
+				  <ul class="nested compact flat">
+				   <li>Revised HTML5 <code>Audio()</code> events, improved <code>whileloading()</code> / <code>whileplaying()</code> / <code>onload()</code> for Webkit and Firefox 4. Progress/onload are still a bit quirky as HTML5 audio is more about "non-linear" loading including range and partial requests, where supported. See <a href="http://getsatisfaction.com/schillmania/topics/html5_chrome_ogg_problems">related discussion</a>.</li>
+                   <li>New <code>soundManager.ok()</code> method, nicer alias for <code>soundManager.supported()</code>.</li>
+                   <li>Took <code>soundmanager.loadFromXML()</code> (SM1 legacy method) out back and shot it. Last tweak was in 2008, nobody uses it.</li>
+				  </ul>
+				 </li>
+
+			     <li class="in">
+				  <p class="compact">Miscellaneous</p>
+				  <ul class="nested compact flat">
+                   <li>Flash <code>&lt;object&gt;</code> / <code>&lt;embed&gt;</code>: <a href="http://help.adobe.com/en_US/as3/mobile/WS4bebcd66a74275c36cfb8137124318eebc6-7ffd.html">hasPriority</a> attribute, enables off-screen SWF loading with Flash 10.1+. Removed mobileFlash positioning/repositioning tricks in lieu of this.</li>
+                   <li>Effectively re-wrote page-player (Muxtape-style) demo, now traverses live DOM for next item(s). Should be more AJAX-friendly. Event delegation now handles any links added at any time. Externalised experimental features, too.</li>
+                   <li>HTML5: If URL lacks <code>type</code> attribute and extension such as <code>.mp3</code> (worst-case scenario, you shouldn't be doing this anyway) just try dumbly loading it - imitating Flash behaviour.</li>
+                   <li>Improved <code>dataerror</code> (wave/spectrum) exception handling, should result in lowered CPU use if playback continues with access exceptions (eg. YouTube video going in another tab.)</li>
+                   <li>Start-up debug output/messaging clean-up (no movieStar in flash 8, minimal output in HTML5-only mode, etc.)</li>
+                   <li>Add window unload handler if Flash being used, so back button will cause a page refresh (vs. the browser showing "previous state") to reinstate Flash in good browsers. Previously, the "previous state" was be shown but Flash audio would be broken.</li>
+                   <li>ipod (ipod touch) gets HTML5 now, too.</li>
+                   <li>Microsoft have added <code>Audio()</code> to Internet Explorer 9 as of "Platform Preview 7" - previous pre-releases of IE 9 only implemented <code>&lt;audio&gt;</code>, which SM2 does not use.</li>
+			      </ul>
+			     </li>
+
+			    </ul>
+		       </li>
+
+			   <li class="in">
+			    <h3><b>V2.97a.20101010</b> - Code cleanup, HTML5 audio tweaks, RTMP features, removal of experimental video, optional usePolicyFile crossdomain.xml feature (<a href="../../download/soundmanagerv297a-20101010.zip">Download archived version</a>)</h3>
+				<p>Shuffling of SoundManager 2 core, approximately 5% shaved off full debug-enabled file size after bug fixes, additional comments, new features and so on. Internal event handling code cleaned up. .SWF builds optimized, Flash 9 non-debug version now under 10 KB. Debug version now flash debugger-enabled. RTMP improvements for Red5 + Flash Media Server streaming cases - buffering, event and state handling. Experimental video feature is toast, createVideo() no longer implemented. iPhone + iPad touch events on page player + 360&deg; player UI demos; tap and drag to seek, etc.</p>
 				
 			    <ul class="double">
 			
@@ -172,13 +317,6 @@
 				   <li>Removed <code>setPosition()</code> within <code>unload()</code>, cleaner exit when destroying a sound</li>
 				  </ul>
 			     </li>
-
-			     <li class="in">
-				  <p class="compact">Merged: RTMP Fork</p>
-				  <ul class="nested compact flat">
-				   <li>Merged GitHub user kjvarga's <a href="http://github.com/kjvarga/SoundManager2/">RTMP fork of SoundManager 2</a>, including buffering, event and state handling fixes and improvements. For more RTMP documentation/features, see the readme on GitHub, or <a href="../../README.rdoc" class="norewrite">view locally</a>.</li>
-				  </ul>
-                 </li>
 
 			     <li class="in">
 				  <p class="compact">API Updates</p>
@@ -202,7 +340,6 @@
 			    </ul>
 
 			   </li>
-
 
 			   <li class="in">
 			    <h3><b>V2.96a.20100822</b> - HTML5 audio support no longer alpha, Safari 5.0.1/SL HTML5 audio issues continue, iPad/iPhone "play through", Flash tweak for Android (<a href="../../download/soundmanagerv296a-20100822.zip">Download archived version</a>)</h3>
@@ -273,7 +410,7 @@
 			     <li class="in">
 			      <p class="compact">API Updates</p>
 			      <ul class="nested compact flat">
-				   <li>New experimental <a href="../#smsound-serverurl" title="SMSound serverURL property">RTMP support</a> via kjvarga's fork at <a href="http://github.com/kjvarga/SoundManager2/">http://github.com/kjvarga/SoundManager2/</a> while maintaining existing NetStream-based behaviour for non-RTMP MPEG4 audio, etc. Uses new <code>serverURL</code> parameter for FMS (I used Red5 for dev/testing,) eg. <code>soundManager.createSound({id:'rtmpTest',serverURL:'rtmp://localhost/oflaDemo',url:'oh-alberta.mp3'}).play();</code></li>
+				   <li>New experimental <a href="../#smsound-serverurl" title="SMSound serverURL property">RTMP support</a> while maintaining existing NetStream-based behaviour for non-RTMP MPEG4 audio, etc. Uses new <code>serverURL</code> parameter for FMS (I used Red5 for dev/testing,) eg. <code>soundManager.createSound({id:'rtmpTest',serverURL:'rtmp://localhost/oflaDemo',url:'oh-alberta.mp3'}).play();</code></li>
 				   <li>New SMSound option for createSound(), load(), play(): '<a href="../#smsound-type" title="SMSound type option">type</a>', for specifying MIME type alongside URL to help with detecting playability. eg. 
 <code>soundManager.createSound({id:'foo', url:'/player.php?stream=1', type:'audio/mp3'}).play();</code> and so on. Hat tip: <a href="http://sylvinus.org">sylvinus.org</a></li>
                    <li>New SMSound event: <a href="../#smsound-onposition" title="SMSound onposition() event">onposition()</a>, for attaching listeners to specific times within a sound.</li>
@@ -414,7 +551,7 @@
 			     <li class="in">
 			      <p class="compact">API Updates</p>
 			      <ul class="nested compact flat">
-				   <li>New <code>soundManager.onready(myFunction[,scope])</code> method, for asynchronous queueing of <code>onload()</code>-style handlers. Fires when SM2 has finished initializing. Accepts an <i>optional</i> scope parameter to apply to handler; if none given, window object is used. A "status" object is passed to your handler (can be ignored) which includes a <code>success</code> boolean indicating whether SM2 loaded OK or not. Handlers added via onready() after successful initialisation will fire immediately.</li>
+				   <li>New <code>soundManager.onready(myFunction[,scope])</code> method, for asynchronous queueing of <code>onload()</code>-style handlers. Fires when SM2 has finished initialising. Accepts an <i>optional</i> scope parameter to apply to handler; if none given, window object is used. A "status" object is passed to your handler (can be ignored) which includes a <code>success</code> boolean indicating whether SM2 loaded OK or not. Handlers added via onready() after successful initialisation will fire immediately.</li>
 				   <li>New <code>soundManager.oninitmovie()</code> event callback, single assignment similar to <code>onload()</code>. Fires when the flash movie has first been written to (or read from) the DOM. Used internally for a flashblock-handler-related example, custom timeout condition.</li>
 				   <li>New <code>soundManager.useFastPolling</code> property (false by default), enables 1 msec Flash 9+ timer for highest-possible <code>whileplaying()</code> and related JS callback frequency (default is 20 msec.) Use with <code>soundManager.useHighPerformance = true</code> for best performance, frame rates while updating the UI via whileplaying() etc.</li>
 				   <li>New sound option (soundManager.defaultOptions): <code>multiShotEvents</code> (default:false) - enable support for multiShot-style events (currently <code>onfinish()</code> only). Eg. When <code>mySound.play()</code> is called three times, <code>onfinish()</code> will subsequently fire three times.</li>

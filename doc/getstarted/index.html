@@ -16,6 +16,7 @@
 <script type="text/javascript" src="../../demo/index.js"></script>
 <script type="text/javascript">
 	soundManager.useFlashBlock = true;
+        soundManager.bgColor = '#f6f6f6';
 	soundManager.debugMode = true;
 	soundManager.debugFlash = true; // enable flash debug output for this page
 	soundManager.url = '../../swf/';
@@ -125,8 +126,8 @@
 			
 				 <h3>SoundManager 2 Tutorial: What, Why, How</h3>
 			
-				 <p><strong>Problem:</strong> Browsers lack good, consistent native audio support. (HTML 5's <code>Audio()</code> is the future, but does not have majority support yet.)</p>
-				 <p><strong>Solution:</strong> Javascript API via Flash + ExternalInterface, works almost everywhere. If HTML5 audio support is enabled, flash fallback used for browsers that don't support "non-free" MP3 + MP4 formats.</p>
+				 <p><strong>Problem:</strong> Browsers lack good, consistent native audio support. (HTML 5's <code>Audio()</code> is the future, but is still in development.)</p>
+				 <p><strong>Solution:</strong> Javascript API using HTML5 Audio() + headless Flash via ExternalInterface, works almost everywhere. If HTML5 is supported but "non-free" MP3/MP4 formats are not, flash is used as a fallback.</p>
 				 <p>SoundManager 2 wraps and extends both the Flash and HTML Audio Sound APIs, providing a single, unified sound API to Javascript; the API is the same, whether HTML or Flash is ultimately used to play sound. (The flash portion is hidden, transparent to both developers and end users.)</p>
 
 				</div>
@@ -154,8 +155,8 @@
 				  <pre>&lt;script src="<span>soundmanager2.js</span>"&gt;&lt;/script&gt;</pre>
 				 </td>
 				 <td>Development, testing, debugging</td>
-				 <td class="nw">90 KB</td>
-				 <td class="nw">~25 KB</td>
+				 <td class="nw">102 KB</td>
+				 <td class="nw">~27 KB</td>
 			   </tr>
 
 			   <tr>
@@ -164,8 +165,8 @@
 				  <pre>&lt;script src="<span>soundmanager2-jsmin.js</span>"&gt;&lt;/script&gt;</pre>
 				 </td>
 				 <td>Production, with debug code</td>
-				 <td class="nw">42 KB</td>
-				 <td class="nw">~14 KB</td>
+				 <td class="nw">46 KB</td>
+				 <td class="nw">~15 KB</td>
 			   </tr>
 
 			   <tr>
@@ -174,8 +175,8 @@
 				  <pre>&lt;script src="<span>soundmanager2-nodebug-jsmin.js</span>"&gt;&lt;/script&gt;</pre>
 				 </td>
 				 <td>Production-optimized, debug code removed</td>
-				 <td class="nw">30 KB</td>
-				 <td class="nw booyaa" title="Best-case scenario for load time/performance">~9.5 KB!</td>
+				 <td class="nw">32 KB</td>
+				 <td class="nw booyaa" title="Best-case scenario for load time/performance">10 KB!</td>
 			   </tr>
 
 			  </table>
@@ -189,6 +190,9 @@ soundManager.flashVersion = 9; <span><span>// optional: shiny features (default 
 soundManager.useFlashBlock = false; <span><span>// optionally, enable when you're ready to <a href="../../demo/flashblock/" title="SoundManager 2 flash block handling demo">dive in</a></span></span>
 <span><span>// enable <a href="../#soundmanager-usehtml5audio">HTML5 audio support</a>, if you're feeling adventurous. iPad/iPhone will always get this.</span></span>
 <span><span>// soundManager.useHTML5Audio = true;</span></span>
+soundManager.onready(function() {
+  <span><span>// Ready to use; soundManager.createSound() etc. can now be called.</span></span>
+});
 &lt;/script&gt;</pre>
 
 <p>If you plan to eventually use the flash block handling feature (disabled in this example), you'll want to look at the <a href="../../demo/flashblock/" title="SoundManager 2 flash block handling demo">flash block demo</a> and include the relevant CSS it uses.</p>
@@ -268,21 +272,21 @@ soundManager.useFlashBlock = false; <span><span>// optionally, enable when you'r
 			
 			  <p>If you want to lazy-load or defer SM2, see <a href="#lazy-loading" title="Lazy-loading SM2 and SM2_DEFER object">Lazy-loading and SM2_DEFER</a>.</p>
 			
-			  <h4>SoundManager onready/onload/onerror Event Handlers</h4>
+			  <h4>SoundManager onready() / ontimeout() and onload() / onerror() Event Handlers</h4>
 			
-			<p><code>onready()</code> is the most flexible and can be used to queue numerous listeners for SM2's start-up. It is a single handler for completion of start-up. Simply pass a callback function, and check <code>soundManager.supported()</code> to know whether sound is available or not:</p>
+			<p><code>onready()</code> is a flexible method that can be used to queue numerous listeners for SM2's successful start-up. Simply pass a callback function, which will be called when SM2 has successfully started:</p>
 
 <pre class="block"><code>soundManager.onready(function() {
-  if (soundManager.supported()) {
     <span><span>// SM2 is ready to go!</span></span>
     makeSomeNoise(); <span><span>// soundManager.createSound(), etc.</span></span>
-  } else {
-    <span><span>// unsupported/error case</span></span>
-  }
 });</code></pre>
 
-			<p>The above example is simplified, slightly; <code>onready()</code> also passes an object literal parameter to your handler that indicates success/fail, so you can check state without having to use <code>soundManager.supported()</code>. For more examples and detail, see <a href="../#soundmanager-onready">soundManager.onready()</a>.</p>
-			
+			<p><code>ontimeout()</code> is used to add listeners for SM2 init failures, which can happen due to missing or blocked Flash support. They are not necessarily fatal as in the flash block case, where <code>onready()</code> calls can follow <code>ontimeout()</code> if the user unblocks flash after a failed init attempt.</p>
+
+<pre class="block"><code>soundManager.ontimeout(function() {
+    <span><span>// SM2 could not start. Flash blocked, missing or security error? Complain, etc.?</span></span>
+});</code></pre>
+
 			  <h4>SoundManager onload() + onerror()</h4>
 
 <p>A more traditional, less-flexible style of event handling is to assign single onload() / onerror() handlers. You should use <code>onready()</code> as it can be assigned at any time once soundManager has been defined, and is more robust.</p>

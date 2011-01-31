@@ -17,9 +17,9 @@
 
 <script type="text/javascript">
 
-function loadScript(sURL,onLoad) {
-  try {
-  var loadScriptHandler = function() {
+function loadScript(sURL, onLoad) {
+
+  function loadScriptHandler() {
     var rs = this.readyState;
     if (rs == 'loaded' || rs == 'complete') {
       this.onreadystatechange = null;
@@ -29,47 +29,69 @@ function loadScript(sURL,onLoad) {
       }
     }
   }
+
   function scriptOnload() {
     this.onreadystatechange = null;
     this.onload = null;
     window.setTimeout(onLoad,20);
   }
+
   var oS = document.createElement('script');
+
   oS.type = 'text/javascript';
   if (onLoad) {
     oS.onreadystatechange = loadScriptHandler;
     oS.onload = scriptOnload;
   }
+
   oS.src = sURL;
   document.getElementsByTagName('head')[0].appendChild(oS);
-  } catch(e) {
-    // oh well
-  }
+
 }
 
 function msg(s) {
+
   document.getElementById('sm2-status').innerHTML = s;
+
 }
 
 window.onload = function() {
+
   msg('Window loaded, waiting 1 second...');
-  setTimeout(function(){
+
+  setTimeout(function() {
+
     msg('Loading soundmanager2.js...');
-    loadScript('../../script/soundmanager2.js',function(){
+
+    loadScript('../../script/soundmanager2.js', function() {
+
       // SM2 script has loaded
+
       soundManager.url = '../../swf/';
+
       soundManager.onready(function() {
-        if (soundManager.supported()) {
-          soundManager.createSound({
-            id:'foo',
-            url:'../_mp3/mouseover.mp3'
-          }).play();
-        }
-        msg(soundManager.supported()?'started OK':'Loaded OK, but unable to start: unsupported/flash blocked, etc.');
+
+        soundManager.createSound({
+          id:'foo',
+          url:'../_mp3/mouseover.mp3'
+        }).play();
+
+        msg('started OK');
+
       });
+
+      soundManager.ontimeout(function() {
+
+        msg('Loaded OK, but unable to start: unsupported/flash blocked, etc.');
+
+      });
+
       soundManager.beginDelayedInit(); // ensure start-up in case document.readyState and/or DOMContentLoaded are unavailable
+
     });
+
   },1000);
+
 }
 
 </script>
@@ -85,26 +107,79 @@ window.onload = function() {
 
 <p>SoundManager 2 status: <b id="sm2-status">Waiting for window.onload()...</b></p>
 
-<pre>window.onload = function() {
-  <span>// Window loaded, waiting 1 second...</span>
+<pre>
+<span>/*
+ * Dynamic script loading helper
+ * Normalizes good browser onload() vs. IE readyState weirdness
+ */
+</span>
+
+function loadScript(sURL, onLoad) {
+
+  function loadScriptHandler() {
+    var rs = this.readyState;
+    if (rs == 'loaded' || rs == 'complete') {
+      this.onreadystatechange = null;
+      this.onload = null;
+      if (onLoad) {
+        onLoad();
+      }
+    }
+  }
+
+  function scriptOnload() {
+    this.onreadystatechange = null;
+    this.onload = null;
+    window.setTimeout(onLoad,20);
+  }
+
+  var oS = document.createElement('script');
+  oS.type = 'text/javascript';
+  if (onLoad) {
+    oS.onreadystatechange = loadScriptHandler;
+    oS.onload = scriptOnload;
+  }
+  oS.src = sURL;
+  document.getElementsByTagName('head')[0].appendChild(oS);
+
+}
+
+<span>// Wait for window load, then load soundmanager2.js, let it start and play a test sound</span>
+
+window.onload = function() {</span>
+
+  msg('Window loaded, waiting 1 second...');
+
   setTimeout(function() {
-    <span>// Loading soundmanager2.js...</span>
-    loadScript('../../script/soundmanager2.js',function() {
+
+    msg('Loading soundmanager2.js...');
+
+    loadScript('../../script/soundmanager2.js', function() {
+
       <span>// SM2 script has loaded</span>
+
       soundManager.url = '../../swf/';
+
       soundManager.onready(function() {
-        if (soundManager.supported()) {
-          soundManager.createSound({
-            id:'foo',
-            url:'../_mp3/mouseover.mp3'
-          }).play();
-        }
-        <span>// msg(soundManager.supported()?'started OK':'Loaded OK, but unable to start: unsupported/flash blocked, etc.');</span>
+        soundManager.createSound({
+          id:'foo',
+          url:'../_mp3/mouseover.mp3'
+        }).play();
+        msg('started OK');
       });
-      soundManager.beginDelayedInit(); <span>// ensure start-up in case document.readyState and/or DOMContentLoaded are unavailable</span>
+
+      soundManager.ontimeout(function() {
+        msg('Loaded OK, but unable to start: unsupported/flash blocked, etc.');
+      });
+
+      soundManager.beginDelayedInit(); // ensure start-up in case document.readyState and/or DOMContentLoaded are unavailable
+
     });
+
   },1000);
-}</pre>
+
+</span>}
+</pre>
 
  <h2 id="flashblock-handling">Handling flash blockers</h2>
  <p>It's good to let users see the flash component of SM2, so those with flash blockers can unblock it and allow SM2 to start. For more info on this, see the <a href="../flashblock/" title="SoundManager 2 with Flash block handling" onclick="if (!document.domain) this.href=this.href+'index.html'">Flashblock</a> example.</p>
@@ -112,6 +187,14 @@ window.onload = function() {
  <h2>Making SM2 wait for window.onload()</h2>
  <p>If you prefer to have the library wait for window.onload() before calling soundManager.onload()/onerror() methods, you can modify SM2's "waitForWindowLoad" property:</p>
 <code>soundManager.waitForWindowLoad = true;</code>
+
+ <h2 style="margin-top:1em">Preventing auto-init using SM2_DEFER</h2>
+ <p>If you want to completely defer the normal start-up of SM2 and call the SoundManager() constructor yourself, you can declare an SM2_DEFER global and set it to true.</p>
+ <pre><code>window.SM2_DEFER = true;
+<span>// some time later, manually start SM2...</span>
+soundManager = new SoundManager();
+soundManager.beginDelayedInit(); <span>// ensure SM2 begins its init process, in the event dom ready / window.load() have already passed</span></code></pre> 
+
  <h2 style="margin-top:1em">Disabling debug output</h2>
  <p>SoundManager 2 will write to a debug &lt;div&gt; element or a javascript console if available, by default. To disable it, simply set the relevant property to false:</p>
 <code>soundManager.debugMode = false;</code>

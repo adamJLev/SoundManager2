@@ -58,9 +58,9 @@ pre.block {
 
 <div id="left">
 
- 	<h1><a href="http://www.schillmania.com/projects/soundmanager2/" title="Javascript MP3 player project home">SoundManager 2</a> / <a href="http://schillmania.com/projects/soundmanager2/demo/360-player/">360&deg; Player</a>: JS + Canvas UI</h1>
+ 	<h1><a href="http://www.schillmania.com/projects/soundmanager2/" title="Javascript MP3 player project home">SoundManager 2</a> / <a href="http://schillmania.com/projects/soundmanager2/demo/360-player/">360&deg; Player</a>: JavaScript + Canvas UI</h1>
 
- <p class="note" style="color:#666;margin-bottom:0.5em">Canvas-based UI. Load progress, seek, play/pause etc. Also see <a href="canvas-visualization.html" title="Javascript canvas visualization with waveform/eq data">360&deg; UI visualization</a> demo.</p>
+ <p class="note" style="color:#666;margin-top:0.5em;margin-bottom:0.5em">Canvas-based UI. Load progress, seek, play/pause etc. Also see <a href="canvas-visualization.html" title="Javascript canvas visualization with waveform/eq data">360&deg; UI visualization</a> demo.</p>
 
 <div id="sm2-container">
  <!-- flash movie is added here -->
@@ -70,14 +70,14 @@ pre.block {
 
 	<div style="float:left;display:inline"> <!-- float is just for this demo layout, you don't need it. -->
  
-	 <div class="ui360" style="margin-top:-0.55em"><a href="../jsAMP-preview/audio/rain.mp3">Rain</a></div>
+	 <div class="ui360" style="margin-top:-0.55em"><a href="../_mp3/rain.mp3">Rain</a></div>
 
 	 <div class="ui360"><a href="http://freshly-ground.com/data/audio/mpc/20090119%20-%20Untitled%20Groove.mp3">20090119 - Untitled Groove</a></div>
 
 	</div>
 
 
-	<div style="float:left;display:inline;margin-left:40px;border-left:1px solid #ccc;padding-left:30px;width:140px">
+	<div style="float:left;display:inline;margin-left:40px;border-left:1px solid #ccc;padding-left:30px;width:152px">
 
 	 <p style="margin-top:1em;margin-bottom:0px">Alternate style: inline</p>
 
@@ -103,18 +103,18 @@ pre.block {
  <div>
 	
 <pre class="block"><code>&lt;div class="<span>ui360</span>"&gt;
- &lt;a href="/path/to/an.mp3"&gt;
+ &lt;a href="/path/to/an.mp3"&gt;play "an.mp3"&lt;/a&gt;
 &lt;/div&gt;</code></pre>
   
  </div>
 
- <p>When the link is clicked, the script adds a <code>UI</code> template to the block, prepending it in front of the MP3 link:</p>
+ <p>When the 360 player script loads, it adds a <code>UI</code> template to the block, prepending it in front of the MP3 link:</p>
 
 <pre class="block"><code>&lt;div class="<span>ui360</span>"&gt;
  <span><span>&lt;-- dynamically-inserted block --&gt;</span></span>
  &lt;div class="<span>ui</span>"&gt;
   &lt;canvas class="<span>sm2-canvas</span>"&gt;&lt;/canvas&gt;
-  &lt;img class="<span>sm2-360btn</span>" /&gt; 
+  &lt;span class="<span>sm2-360btn</span>"&gt;&lt;/span&gt; 
   &lt;div class="<span>sm2-timing</span>"&gt;&lt;/div&gt;
   &lt;div class="<span>sm2-cover</span>"&gt;&lt;/div&gt;
  &lt;/div&gt;
@@ -129,10 +129,10 @@ pre.block {
 <pre class="block"><code>threeSixtyPlayer.config = {
   playNext: <span>false</span>, <span><span>// stop after one sound, or play through list until end</span></span>
   autoPlay: <span>false</span>, <span><span>// start playing the first sound right away</span></span>
+  allowMultiple: <span>true</span>, <span><span>// let many sounds play at once (false = one at a time)</span></span>
   loadRingColor: <span>'#ccc',</span> <span><span>// amount of sound which has loaded</span></span>
   playRingColor: <span>'#000'</span>, <span><span>// amount of sound which has played</span></span>
   backgroundRingColor: <span>'#eee', </span><span><span>// "default" color shown underneath everything else</span></span>
-  imageRoot: <span>''</span>,</span> <span><span>// path to prepend for empty.gif used for play/pause button
   animDuration: <span>500</span>,
   animTransition: <span>Animator.tx.bouncy</span> <span><span>// http://www.berniecode.com/writing/animator.html</span></span>
 }</code></pre>

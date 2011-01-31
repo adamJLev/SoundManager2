@@ -144,7 +144,7 @@ url = '/path/to/swfs/';  <span>// path (directory) where SM2 .SWF files will be 
 useConsole = true;       <span>// use firebug/safari console.log()-type debug console if available</span>
 useMovieStar = true;     <span>// enable <a href="http://www.adobe.com/support/documentation/en/flashplayer/9/releasenotes.html#fixes_90115">Flash 9.0r115+</a> MPEG4 audio support</span>
 useFastPolling = false;  <span>// fast timer=higher callback frequency, combine w/useHighPerformance</span>
-customPollingInterval = null; <span>// msecs for polling interval. Default is 50 unless 'useFastPolling' is on.</span>
+flashPollingInterval = null; <span>// Frequency for Flash. Default = 50 unless useFastPolling = true.</span>
 useHighPerformance = false;<span>// position:fixed flash movie for faster JS/flash callbacks</span>
 waitForWindowLoad = false; <span>// always delay soundManager.onload() until after window.onload()</span>
 wmode = 'transparent';     <span>// null, transparent, opaque (last two allow HTML on top of flash)</span>
@@ -228,17 +228,17 @@ soundManager.defaultOptions.volume = 33; <span>// set global default volume for 
 			<p>Note that when the timeout is disabled, soundManager will not fire its onerror() handler if there is an error at the flash loading stage.</p>
 		  </div>
 
-		  <div class="f-block f-usefastpolling f-usehighperformance f-custompollinginterval">
+		  <div class="f-block f-usefastpolling f-usehighperformance f-flashpollinginterval">
 			<h4 id="soundmanager-usefastpolling">soundManager.useFastPolling</h4>
 			<p>By default <code>useFastPolling = false</code>, and thus SoundManager uses a 20-milisecond timer inside Flash when polling for updated sound properties such as <code>bytesLoaded</code> and data and event callbacks eg. <code>whileloading()</code>, <code>whileplaying()</code> and so on. With <code>useFastPolling = true</code>, a 1-msec timer is used and callback frequency may noticeably increase. This is best combined with <code>useHighPerformance</code> for optimal results.</p>
 		  </div>
 
-		  <div class="f-block f-custompollinginterval f-usefastpolling f-usehighperformance">
-			<h4 id="soundmanager-custompollinginterval">soundManager.customPollingInterval</h4>
+		  <div class="f-block f-flashpollinginterval f-usefastpolling f-usehighperformance">
+			<h4 id="soundmanager-flashpollinginterval">soundManager.flashPollingInterval</h4>
 			<p>Setting this will override <code>useFastPolling</code>. E.g. set this to 200 to have 200ms intervals. This is useful in case your callbacks are CPU intensive.</p>
 		  </div>
 		
-		  <div class="f-block f-usehighperformance f-usefastpolling f-custompollinginterval">
+		  <div class="f-block f-usehighperformance f-usefastpolling f-flashpollinginterval">
 			<h4 id="soundmanager-highperformance">soundManager.useHighPerformance</h4>
 			<p>Perhaps intuitively, Flash is given higher priority when positioned within the viewable area of the browser, at least 6px in height (oddly), fully-opaque, visible and displayed on the screen. By default, <code class="in">soundManager.useHighPerformance</code> is enabled and should noticeably reduce JS/flash lag and increase the frequency of callbacks such as <code class="in">whileplaying()</code> in some circumstances.</p>
 			<p><code class="in">soundManager.useHighPerformance = true;</code></p>
@@ -310,46 +310,75 @@ soundManager.defaultOptions.volume = 33; <span>// set global default volume for 
 			
 			<p>Once <code>soundManager.onready()</code> has fired and SM2 has started, you can check for support via a number of methods. Namely, <a href="#soundmanager-canplaylink">soundManager.canPlayLink()</a> will take an <code>&lt;a&gt;</code> element and check its <code>href</code> and <code>type</code> attributes, if available, for hints as to its format or type. You can also pass arbitrary URLs to <a href="#soundmanager-canplayurl">soundManager.canPlayURL()</a>, which will make a "best guess" based on the extension it finds. In any event, SM2 will return a true/false value from canPlay methods based on HTML and/or flash capabilities.</p>
 			
-			<p>To see what formats are supported by HTML5, watch SM2's debug/console output when debug is enabled, or dump the contents of <code>soundManager.html5</code> to the console; it will show the results of tests for simple items like "mp3", as well as <code>canPlayType()</code> strings such as 'mpeg; codecs=mp3'
+			<p>To see what formats are supported by HTML5, watch SM2's debug/console output when debug is enabled, or dump the contents of <code>soundManager.html5</code> to the console; it will show the results of tests for simple items like "mp3", as well as <code>canPlayType()</code> strings such as 'mpeg; codecs=mp3'</p>
 			
 			<h5>Apple iPad, iPhone, Palm Pre: Special Cases</h5>
 			<p>The "Big iPhone" doesn't do Flash, and does support HTML5 <code>Audio()</code> pretty decently - so SM2 makes a special exception to enable <code>useHTML5Audio</code> when it detects an iPad, iPhone or Palm Pre user agent string by default. Feel free to disable this if you wish.</p>
 			<p>iPad and iPhone require user interaction to start a sound, eg. the createSound() and play() call should happen within an onclick() handler on a link, etc. The "security" model here seems to be implemented similarly to the way pop-up blockers work. You may "chain" sounds (eg. create and play a new one) provided it is done via the onfinish() event of a sound initiated by a user, however. The Muxtape-style demo on the SM2 homepage uses this, and will advance the playlist on the iPad/iPhone if allowed.</p>
 			<p>iPad 3.2 gets hung up on the "BC quail" HE-AAC example sound for some reason, and endlessly loops it rather than finishing and moving on to the next item. May be an iPad playback bug, as other formats are fine. iPhone OS 4 (iOS 4) does not show this issue.</p>
 			<p>iPhone OS version &lt; 3.1 doesn't work, but 3.1 (and possibly earlier versions, not verified) have a native <code>Audio()</code> object. However, they seem to simply not play sound when <code>play()</code> is called, so SM2 looks for and ignores the iPhone with these OS revisions.</p>
-			<p>The Palm Pre <a href="http://developer.palm.com/index.php?option=com_content&view=article&id=1741&Itemid=265#using_html_5_audio_objects" title="Palm Developer Center: Audio">supports</a> a number of MP3, MP4 and WAV formats (WebOS 1.4.1 was tested; it didn't seem to like MP3s at 192kbps, but 128kbps was fine.)</p>
+			<p>The Palm Pre <a href="http://developer.palm.com/index.php?option=com_content&amp;view=article&amp;id=1741&amp;Itemid=265#using_html_5_audio_objects" title="Palm Developer Center: Audio">supports</a> a number of MP3, MP4 and WAV formats (WebOS 1.4.1 was tested; it didn't seem to like MP3s at 192kbps, but 128kbps was fine.)</p>
 				
-			<h5>Known HTML5 Audio bugs/limitations/annoyances</h5>
 
-			<p>As of the October, 2010 release of SM2 (V2.97a.20101010):</p>
-			<ul>
-			 <li>HTML5 audio is disabled for all versions of Safari (4 and 5) on Snow Leopard (OS X 10.6.3 and 10.6.4) until Apple fixes issues with audio loading and playback due to bugs in "underlying frameworks." See <a href="https://bugs.webkit.org/show_bug.cgi?id=32159#c9" title="Safari Snow Leopard HTML5 Audio Bug">Webkit #32159</a>.</li>
-		    </ul>
+                        <div id="html5-knownissues">
 
-			<p>As of the August, 2010 release of SM2 (V2.96a.20100822):</p>
-			<ul>
-			 <li>Safari 5.0.1 (533.17.18) on Snow Leopard (10.6.x) continues to show buggy HTML5 audio load/playback behaviour. Apple are aware of the regression, which began with Safari 4.0 on Snow Leopard (perhaps with the new QuickTime.) See <a href="https://bugs.webkit.org/show_bug.cgi?id=32159#c9" title="Safari Snow Leopard HTML5 Audio Bug">Webkit #32159</a>.</li>
-			 <li>iPad/iPhone iOS4 will now play a sequence of sounds if using <code>onfinish()</code> to create/start the next (eg., the Muxtape-style playlist on the SM2 homepage will play through once the user starts it.) In any event, user interaction is always required to start the first sound.</li>
-		    </ul>
+			 <h5>HTML5 Audio: Notes, bugs, quirks and annoyances</h5>
 			
-			<p>As of the June, 2010 release of SM2 (V2.96a.20100624):</p>
-			<ul>
-			 <li>Safari 5.0 (533.16) on OS X Snow Leopard (10.6.x) continues to show buggy HTML5 audio load/playback behaviour, same as with Safari 4.0.5 on Snow Leopard only - may be related to underlying QuickTime implementation (a guess, at this point.) SM2 will disable HTML5 audio support by default for this specific browser + OS combo. See <a href="https://bugs.webkit.org/show_bug.cgi?id=32159#c9" title="Safari Snow Leopard HTML5 Audio Bug">Webkit #32159</a> for discussion + testcases.</li>
-			</ul>
 			
-			<p>As of the May, 2010 release of SM2 (V2.96a.20100520):</p>
-			<ul>
-			 <li>Safari 4.0.5 on OS X Snow Leopard (10.6.x) appears to have an annoying bug where audio inconsistently fails to load / play; SM2 will currently disable or ignore the HTML5 feature on this exact browser + OS version. See <a href="https://bugs.webkit.org/show_bug.cgi?id=32159#c9" title="Safari Snow Leopard HTML5 Audio Bug">Webkit #32159</a> for discussion + testcases. Note that Safari on OS X 10.5 "Leopard" and on Windows <i>do not</i> appear to have this bug; it seems to be limited to Snow Leopard, seen on OS X 10.6.3.</li>
-			 <li>Some browsers (and iPad 3.2?) do not fire <code>progress</code> events, and/or do not implement bytesLoaded/bytesTotal-style attributes.</li>
-			 <li>iPad 3.2 appears to be able to only play one sound at a time, and will terminate other sounds.</li>
-			 <li>iPad 3.2 may also loop AAC+ (HE-AAC) and WAV sounds, perhaps not firing onfinish() and resetting the position to 0 each time, but is fine with MP3s. This has been observed, but not fully-tested.</li>
-			 <li>Looping in HTML5 is either "infinite" or "none". A wrapper may be created for SM2 so that a number of loops can be specified, as with Flash. This is not yet implemented.</li>
-			 <li>Panning (left/right channel balance) does not appear to be in HTML5.</li>
-			 <li>Flash-only features such as ID3 tag reading, waveform and spectrum data will simply be ignored, and their related events will not fire on SMSound objects which are using HTML5.</li>
-			</ul>
+			 <p><b>As of the V2.97.20110123 release of SM2:</b></p>
+			
+			 <ul>
+			  <li><p>New (experimental) <code>soundManager.useGlobalHTML5Audio</code> attribute, enabled by default for mobile + iOS. Enables use of a single audio object, re-used for loading and playing all sounds. iOS currently can only play one sound at a time, so this limitation is safe for now. The global object fixes previous regression of play-through/playNext()-style behaviours.</p></li>
+			  <li><p>Sound recycling with new global audio feature should work better than in prior (development) versions.</p></li>
+			  <li><p>Improved broken Safari/Snow Leopard HTML5 audio situation: HTML5 mode is no longer disabled - and if available, Flash is used to play MP3/MP4 content to work around known playback issues with native HTML5 audio.</p></li>
+			  <li><p>New (experimental) <code>soundManager.requireFlash</code> property (default: false.) If true, prevents HTML5-only mode on devices with both HTML5 and Flash. May be useful when HTML5 is enabled (and can play MP3), but Flash is desired to play RTMP content etc. As of this version, will only use Flash for RTMP.</p></li>
+			  <li><p>Fix for <code>type:'audio/mp3'</code> returning false on <code>canPlay()</code>. Timer update-while-paused tweak.</p></li>
+			  <li><p>More event listeners, ignore events on destroyed sounds, improved event clean-up, "seek before load" fix</p></li>
+			 </ul>
+
+ 			 <p><b>As of the January 1, 2011 (V2.97a.20110101) and December, 2010 releases of SM2 (V2.97a.20101221):</b></p>
+                         <ul>
+                          <li><p>The <code>bytesLoaded</code> and <code>bytesTotal</code> properties may become less-relevant under HTML5 due to non-linear HTTP downloading (using ranges and partials), but they are still provided under Firefox at this time.</p></li>
+                          <li><p>Related to bytes loading/total, a sound's <code>onload</code> event may not always be fired (Mozilla currently discourage use of the DOM <code>loaded</code> event), again because of range requests and the ability to arbitrarily seek within a file.</p></li>
+                          <li><p>Basic support for the W3 <code>TimeRanges</code> implementation of sound buffering (ie., loaded data) has been implemented. This gives an idea of "total time loaded", but again, is not necessarily sequential.</p></li>
+                          <li><p>HTML5 audio is disabled for all versions of Safari (4 and 5) on Snow Leopard (OS X 10.6.3 - 10.6.5) until Apple fixes issues with audio loading and playback due to bugs in "underlying frameworks." See <a href="https://bugs.webkit.org/show_bug.cgi?id=32159#c9" title="Safari Snow Leopard HTML5 Audio Bug">Webkit #32159</a>. HTML5 audio in Safari on Windows (provided QuickTime is installed) does not have the same fatal bug.</p></li>
+                         </ul>
+
+             <p><b>As of the October, 2010 release of SM2 (V2.97a.20101010):</b></p>
+			 <ul>
+			  <li><p>HTML5 audio is disabled for all versions of Safari (4 and 5) on Snow Leopard (OS X 10.6.3 and 10.6.4) until Apple fixes issues with audio loading and playback due to bugs in "underlying frameworks." See <a href="https://bugs.webkit.org/show_bug.cgi?id=32159#c9" title="Safari Snow Leopard HTML5 Audio Bug">Webkit #32159</a>.</p></li>
+		         </ul>
+
+			 <p><b>As of the August, 2010 release of SM2 (V2.96a.20100822):</b></p>
+			 <ul>
+			  <li><p>Safari 5.0.1 (533.17.18) on Snow Leopard (10.6.x) continues to show buggy HTML5 audio load/playback behaviour. Apple are aware of the regression, which began with Safari 4.0 on Snow Leopard (perhaps with the new QuickTime.) See <a href="https://bugs.webkit.org/show_bug.cgi?id=32159#c9" title="Safari Snow Leopard HTML5 Audio Bug">Webkit #32159</a>.</p></li>
+			  <li><p>iPad/iPhone iOS4 will now play a sequence of sounds if using <code>onfinish()</code> to create/start the next (eg., the Muxtape-style playlist on the SM2 homepage will play through once the user starts it.) In any event, user interaction is always required to start the first sound.</p></li>
+		         </ul>
+			
+			 <p><b>As of the June, 2010 release of SM2 (V2.96a.20100624):</b></p>
+			 <ul>
+			  <li><p>Safari 5.0 (533.16) on OS X Snow Leopard (10.6.x) continues to show buggy HTML5 audio load/playback behaviour, same as with Safari 4.0.5 on Snow Leopard only - may be related to underlying QuickTime implementation (a guess, at this point.) SM2 will disable HTML5 audio support by default for this specific browser + OS combo. See <a href="https://bugs.webkit.org/show_bug.cgi?id=32159#c9" title="Safari Snow Leopard HTML5 Audio Bug">Webkit #32159</a> for discussion + testcases.</p></li>
+			 </ul>
+			
+			 <p><b>As of the May, 2010 release of SM2 (V2.96a.20100520):</b></p>
+			 <ul>
+			  <li><p>Safari 4.0.5 on OS X Snow Leopard (10.6.x) appears to have an annoying bug where audio inconsistently fails to load / play; SM2 will currently disable or ignore the HTML5 feature on this exact browser + OS version. See <a href="https://bugs.webkit.org/show_bug.cgi?id=32159#c9" title="Safari Snow Leopard HTML5 Audio Bug">Webkit #32159</a> for discussion + testcases. Note that Safari on OS X 10.5 "Leopard" and on Windows <i>do not</i> appear to have this bug; it seems to be limited to Snow Leopard, seen on OS X 10.6.3.</p></li>
+			  <li><p>Some browsers (and iPad 3.2?) do not fire <code>progress</code> events, and/or do not implement bytesLoaded/bytesTotal-style attributes.</p></li>
+			  <li><p>iPad 3.2 appears to be able to only play one sound at a time, and will terminate other sounds.</p></li>
+			  <li><p>iPad 3.2 may also loop AAC+ (HE-AAC) and WAV sounds, perhaps not firing onfinish() and resetting the position to 0 each time, but is fine with MP3s. This has been observed, but not fully-tested.</p></li>
+			  <li><p>Looping in HTML5 is either "infinite" or "none". A wrapper may be created for SM2 so that a number of loops can be specified, as with Flash. This is not yet implemented.</p></li>
+			  <li><p>Panning (left/right channel balance) does not appear to be in HTML5.</p></li>
+			  <li><p>Flash-only features such as ID3 tag reading, waveform and spectrum data will simply be ignored, and their related events will not fire on SMSound objects which are using HTML5.</p></li>
+			 </ul>
+
+                        </div>
 
 			<h5>General Disclaimer</h5>
 			<p>HTML5 audio support may still be in flux, and may not be fully-supported or implemented consistently in modern browsers. Be careful out there.</p>
+
+                        <h5>Related Reading on HTML5</h5>
+                        <p>For some more backstory on HTML and audio, see the 24ways.org article <a href="http://24ways.org/2010/the-state-of-html5-audio">"Probably, Maybe, No": The State Of HTML5 Audio</a> (published December, 2010.)</p>
+
 		  </div>
 
 		  <div class="f-block f-wmode">
@@ -454,7 +483,7 @@ mySoundObject.play(); <span><span>// SMSound object reference, same as soundMana
 				  </dl>
 
 	   <dl id="soundmanager-createsound-overloaded" class="f-block f-createsound">
-	    <dt><span>object:SMSound </span>createSound(<span>id:string,url:string</span>) - overloaded method</dt>
+	    <dt><span>object:SMSound </span>createSound(<span>id:string, url:string</span>) - overloaded method</dt>
 	    <dd title="id:string,url:string">Creates a sound with the specified ID and URL (simple two-parameter method.)</dd>
 	    <dd>Example: <code>soundManager.createSound('<span>mySound</span>','<span>/audio/mysoundfile.mp3</span>');</code></dd>
 	   </dl>
@@ -473,33 +502,34 @@ mySoundObject.play(); <span><span>// SMSound object reference, same as soundMana
 	   </dl>
 
 	   <dl id="soundmanager-onready" class="f-block f-onready">
-	   <dt>onready(<span>callback:function(status),[scope]</span>)</dt>
-	   <dd title="callback:function">Queue <code>onload()</code>-style event listener(s) processed at (or immediately, if added after) SM2 initialization, just before <code>soundManager.onload()</code> or <code>onerror()</code> are called. More flexible than single <code>soundManager.onload()</code> event, allows separate scripts to add listeners etc. An optional scope parameter can be specified; if none, the callback is scoped to the window.</dd>
-	   <dd>Example: <code>soundManager.onready(<span>myOnReadyHandler</span>); soundManager.onready(<span>myOtherHandler</span>);</code></dd>
-	   <dd>A "status" object is also passed to the callback, which can be safely ignored. It includes a "success" parameter, indicating the state of <code>soundManager.supported()</code>.</dd>
+	   <dt>onready(<span>callback:function, [scope]</span>)</dt>
+	   <dd title="callback:function">Queues an event callback/handler for successful initialization and "ready to use" state of SoundManager 2. An optional scope parameter can be specified; if none, the callback is scoped to the window. If <code>onready()</code> is called after successful initialization, the callback will be executed immediately. The <code>onready()</code> queue is processed before <code>soundManager.onload()</code>.</dd>
 	   <dd>Example:
-<pre class="block"><code>soundManager.onready(<span>function(oStatus) {
-  if (oStatus.success) {
-    alert('Yay, SM2 loaded OK!');	
-  } else {
-    alert('Oh snap, SM2 could not start.');
-  }
-}</span>);</code></pre>
-		<p>You may also check <code>soundManager.supported()</code> instead.</p>
 <pre class="block"><code>soundManager.onready(<span>function() {
-  if (soundManager.supported()) {
-    alert('Yay, SM2 loaded OK!');	
-  } else {
-    alert('Oh snap, SM2 could not start.');
-  }
+  alert('Yay, SM2 loaded OK!');	
 }</span>);</code></pre>
 	   </dd>
+	   <dd>Queueing multiple handlers: <code>soundManager.onready(<span>myOnReadyHandler</span>); soundManager.onready(<span>myOtherHandler</span>);</code></dd>
 	   <dd>The same listener may be added multiple times; there is no duplicate checking. Queue is processed in order of addition.</dd>
-	   <dd>If <code>soundManager.reboot()</code> is called, all listeners' "fired" flags will be reset and they will be eligible to fire again when SM2 starts up.</dd>
+	   <dd>If <code>soundManager.reboot()</code> is called, all listeners' "fired" flags will be reset and they will be eligible to fire again when SM2 starts.</dd>
+	   </dl>
+
+	   <dl id="soundmanager-ontimeout" class="f-block f-ontimeout">
+	   <dt>ontimeout(<span>callback:function, [scope]</span>)</dt>
+	   <dd title="callback:function">Queues an event callback/handler for SM2 init failure, processed at (or immediately, if added after) SM2 initialization has failed, just before <code>soundManager.onerror()</code> is called. An optional scope parameter can be specified; if none, the callback is scoped to the window.</dd>
+	   <dd>Example:
+<pre class="block"><code>soundManager.ontimeout(<span>function() {
+  alert('SM2 failed to start. Flash missing, blocked or security error?');	
+}</span>);</code></pre>
+	   </dd>
+	   <dd>Queueing multiple handlers: <code>soundManager.ontimeout(<span>myOnTimeoutHandler</span>); soundManager.ontimeout(<span>myOtherHandler</span>);</code></dd>
+       <dd>The timeout event is not necessarily fatal, as SM2 may be rebooted and fire an <code>onready()</code> in the <code>useFlashBlock</code> case (where the user sees, and chooses to unblock, the Flash component after a failed init attempt.)</dd>
+	   <dd>The same listener may be added multiple times; there is no duplicate checking. Queue is processed in order of addition.</dd>
+	   <dd>If <code>soundManager.reboot()</code> is called, all listeners' "fired" flags will be reset and they will be eligible to fire again when SM2 starts.</dd>
 	   </dl>
 
 	   <dl id="soundmanager-play" class="f-block f-play">
-	   <dt><span>object:SMSound</span> play(<span>id:string,[options object]</span>)</dt>
+	   <dt><span>object:SMSound</span> play(<span>id:string, [options object]</span>)</dt>
 	   <dd title="soundID:string">Starts playing the sound specified by ID. (Will start loading if applicable, and will play ASAP.)</dd>
 	   <dd>Returns an <code>SMSound</code> (sound object) instance.</dd>
 	   <dd>Example: <code>soundManager.play('<span>mySound</span>');</code></dd>
@@ -560,7 +590,7 @@ mySoundObject.play(); <span><span>// SMSound object reference, same as soundMana
 	   </dl>
 
 	   <dl id="soundmanager-setvolume" class="f-block f-setvolume">
-	   <dt><span>object:SMSound</span> setVolume(<span>id:string,volume:integer</span>)</dt>
+	   <dt><span>object:SMSound</span> setVolume(<span>id:string, volume:integer</span>)</dt>
 	   <dd title="id:string,volume:integer">Sets the volume of the sound specified by ID and returns the related sound object. Accepted values: 0-100. Affects <span>volume</span> property.</dd>
 	   <dd>Example: <code>soundManager.setVolume('<span>mySound</span>',<span>50</span>);</code></dd>
 	   </dl>
@@ -603,7 +633,7 @@ mySoundObject.play(); <span><span>// SMSound object reference, same as soundMana
 	   </dl>
 
 	   <dl id="soundmanager-load" class="f-block f-load">
-	   <dt><span>object:SMSound</span> load(<span>id:string,[options object]</span>)</dt>
+	   <dt><span>object:SMSound</span> load(<span>id:string, [options object]</span>)</dt>
 	   <dd title="soundID:string">Starts loading the sound specified by ID, with options if specified. Returns the related sound object.</dd>
 	   <dd>Example: <code>soundManager.load('<span>mySound</span>');</code></dd>
 	   <dd>Example 2: <code>soundManager.load('<span>mySound</span>',{<span>volume:50,onfinish:playNextSound</span>});</code></dd>
@@ -621,18 +651,10 @@ mySoundObject.play(); <span><span>// SMSound object reference, same as soundMana
 		<dd>Example: <code>var mbUsed = (soundManager.getMemoryUse()/1024/1024).toFixed(2); <span><span>// eg. 12.05 MB</span></span></code></dd>
 	   </dl>
 
-	   <dl id="soundmanager-loadfromxml" class="f-block f-loadfromxml">
-	   <dt>loadFromXML(<span>xmlURL:string</span>)</dt>
-	   <dd>Loads and creates sounds as defined in a <a href="http://www.schillmania.com/projects/soundmanager/" title="SoundManager v1 project page">SoundManager v1</a> XML file (legacy)</dd>
-	   <dd>Note that per-sound options are not supported with this method, and sound objects will be created immediately upon loading and parsing of the XML. The sounds will inherit the <code>defaultOptions</code> settings, with the exception of the <code>stream</code> attribute as set in the XML (true if defined, defaultOption applied if omitted.)</dd>
-	   <dd>Example: <code>soundManager.loadFromXML('<span>/path/to/some.xml</span>');</code></dd>
-	   <dd>XML format example: <a href="../demo/mpc/acoustic-drumkit.xml">MPC drumkit XML file</a></dd>
-	   </dl>
-
-	   <dl id="soundmanager-supported" class="f-block f-supported">
-	   <dt><span>isSupported:boolean</span> supported()</dt>
-	   <dd>Returns a boolean indicating whether soundManager has attempted to and succeeded in initialising. This function will return false if called before initialisation has occurred.</dd>
-	   <dd>Example: <code>var isSupported = soundManager.supported();</code></dd>
+	   <dl id="soundmanager-ok" class="f-block f-ok f-supported">
+	   <dt id="soundmanager-supported"><span>isSupported:boolean</span> ok() ( previous name: supported() )</dt>
+	   <dd>Returns a boolean indicating whether soundManager has attempted to and succeeded in initialising. This function will return false if called before initialisation has occurred, and is useful when you want to create or play a sound without knowing SM2's current state.</dd>
+	   <dd>Example: <code>var isSupported = soundManager.ok();</code></dd>
 	   </dl>
 
 			</div>
@@ -821,6 +843,7 @@ mySoundObject.play(); <span><span>// SMSound object reference, same as soundMana
     soundManager._writeDebug(this.sID+' connected: '+(bConnect?'true':'false'));
   }
 </span>}).play();<span><span> // will result in connection being made</span></span></code></pre>
+                   </dd>
 				   </dl>
 
 				   <dl id="smsound-onfinish" class="f-block s-onfinish">
@@ -1199,7 +1222,7 @@ for (prop in this.id3) {
 <pre class="small block"><code>soundManager.defaultOptions = {<span>
   autoLoad: false,       <span>// enable automatic loading (otherwise .load() will call with .play())</span>
   autoPlay: false,       <span>// enable playing of file ASAP (much faster if "stream" is true)</span>
-  loops: 1,              <span>// number of times to play the sound. Related: <a href="demo/api/#looping">looping</a> (API demo)</span>
+  loops: 1,              <span>// number of times to play the sound. Related: <a href="../demo/api/#looping">looping</a> (API demo)</span>
   multiShot: true,       <span>// let sounds "restart" or "chorus" when played multiple times..</span>
   multiShotEvents: false,<span>// allow events (onfinish()) to fire for each shot, if supported.</span>
   onid3: null,           <span>// callback function for "ID3 data is added/available"</span>
@@ -1297,11 +1320,11 @@ soundManager.movieStarOptions = {<span>
 
 			<div class="c2">
 				
-				  <div class="f-block f-features f-supported f-waveformdata f-peakdata">
+				  <div class="f-block f-features f-waveformdata f-peakdata">
 
 				  <h3 id="soundmanager-dynamic">SoundManager Dynamic (Runtime) Properties</h3>
 
-				  <p class="in">Some properties are dynamic, determined at initialisation or later during runtime, and should be treated as read-only. Currently, <code><a href="#soundmanager-supported" onclick="resetFilter()">supported()</a></code> and <code>features</code> are the only properties that fall in this category.</p>
+				  <p class="in">Some properties are dynamic, determined at initialisation or later during runtime, and should be treated as read-only. Currently, <code><a href="#soundmanager-ok" onclick="resetFilter()">ok()</a></code> and <code>features</code> are the only properties that fall in this category.</p>
 
 				  <h4 id="soundmanager-features">soundManager.features Object</h4>
 
@@ -1363,7 +1386,7 @@ soundManager.movieStarOptions = {<span>
 			   <dd>If you want multiple listeners for this event, see <a href="#soundmanager-onready" onclick="resetFilter()">soundManager.onready()</a>.</dd>
 
 			   <dt title="method(object:function)">onready(<span>callback:function(status),[scope]</span>)</dt>
-			   <dd title="callback:function">Queue <code>onload()</code>-style event listener(s), triggered when soundManager has either started or failed.</dd>
+			   <dd title="callback:function">Queue <code>onload()</code>-style event listener(s), triggered when soundManager has successfully started.</dd>
 			   <dd>Example: <code>soundManager.onready(<span>myOnReadyHandler</span>); soundManager.onready(<span>myOtherHandler</span>);</code></dd>
 			   <dd>For more detail and examples, see <a href="#soundmanager-onready" onclick="resetFilter()">soundManager.onready()</a>.</dd>
 
@@ -1508,7 +1531,7 @@ soundManager.movieStarOptions = {<span>
 	 <li><a href="#soundmanager-url">url</a></li>
 	 <li>useConsole</li>
 	 <li class="flash9" title="Flash 9+ only"><a href="#soundmanager-usefastpolling">useFastPolling</a></li>
-	 <li class="flash9" title="Flash 9+ only"><a href="#soundmanager-custompollinginterval">customPollingInterval</a></li>
+	 <li class="flash9" title="Flash 9+ only"><a href="#soundmanager-flashpollinginterval">flashPollingInterval</a></li>
      <li><a href="#soundmanager-useflashblock">useFlashBlock</a></li>
 	 <li><a href="#soundmanager-highperformance">useHighPerformance</a></li>
      <li class="recent" title="Recently-added, beta feature">useHTML5Audio</li>
@@ -1528,8 +1551,8 @@ soundManager.movieStarOptions = {<span>
 	 <li class="flash9" title="Flash 9.0+ only"><a href="#soundmanager-getmemoryuse">getMemoryUse()</a></li>
      <li><a href="#soundmanager-getsoundbyid">getSoundById()</a></li>
      <li><a href="#soundmanager-load">load()</a></li>
-     <li><a href="#soundmanager-loadfromxml">loadFromXML()</a></li>
      <li><a href="#soundmanager-mute">mute()</a></li>
+     <li><a href="#soundmanager-ok" class="new">ok()</a></li>
      <li><a href="#soundmanager-pause">pause()</a></li>
      <li><a href="#soundmanager-pauseall">pauseAll()</a></li>
      <li><a href="#soundmanager-play">play()</a></li>
@@ -1555,6 +1578,7 @@ soundManager.movieStarOptions = {<span>
      <li><a href="#soundmanager-oninitmovie">oninitmovie()</a></li>
      <li><a href="#soundmanager-onload">onload()</a></li>
      <li><a href="#soundmanager-onready">onready()</a></li>
+     <li class="new" title="Newly-added feature"><a href="#soundmanager-ontimeout">ontimeout()</a></li>
     </ul>
 
    </li>
@@ -1634,6 +1658,7 @@ soundManager.movieStarOptions = {<span>
 	 <li><a href="#smsound-load">load()</a></li>
      <li><a href="#smsound-mute">mute()</a></li>
      <li><a href="#smsound-pause">pause()</a></li>
+     <li><a href="#smsound-play">play()</a></li>
      <li><a href="#smsound-resume">resume()</a></li>
      <li><a href="#smsound-setpan">setPan()</a></li>
      <li><a href="#smsound-setposition">setPosition()</a></li>
