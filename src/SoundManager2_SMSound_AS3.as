@@ -223,7 +223,13 @@ package {
           writeDebug("NetConnection: Connection failed! Lost internet connection? Try again... Description: " + event.info.description);
           ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", 'Connection failed!', event.info.level, event.info.code);
           break;
-
+        
+        // AJL: Experimental
+        case "NetConnection.Connect.IdleTimeOut":
+          this.failed = true;
+          writeDebug("NetConnection: got IdleTimeOut '" + event.info.code + "'! Description: " + event.info.description);
+          break;
+        
         // A change has occurred to the network status. This could mean that the network
         // connection is back, or it could mean that it has been lost...just try to resume
         // playback.
