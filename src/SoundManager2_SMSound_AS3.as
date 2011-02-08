@@ -263,7 +263,6 @@ package
 				case "NetConnection.Connect.IdleTimeOut":
 					this.failed = true;
 					writeDebug("NetConnection: got IdleTimeOut '" + event.info.code + "'! Description: " + event.info.description);
-					reconnect();
 					break;
 
 				// A change has occurred to the network status. This could mean that the network
