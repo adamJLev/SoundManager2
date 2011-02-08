@@ -13,14 +13,14 @@
 package {
 
   import flash.display.Sprite;
+  import flash.events.AsyncErrorEvent;
   import flash.events.Event;
   import flash.events.IOErrorEvent;
   import flash.events.MouseEvent;
-  import flash.events.SecurityErrorEvent;
-  import flash.events.AsyncErrorEvent;
   import flash.events.NetStatusEvent;
+  import flash.events.SecurityErrorEvent;
   import flash.events.TimerEvent;
-  import flash.external.ExternalInterface; // woo
+  import flash.external.ExternalInterface;
   import flash.media.Sound;
   import flash.media.SoundChannel;
   import flash.media.SoundMixer;
@@ -29,14 +29,14 @@ package {
   import flash.system.Security;
   import flash.system.System;
   import flash.text.TextField;
-  import flash.text.TextFormat;
   import flash.text.TextFieldAutoSize;
+  import flash.text.TextFormat;
   import flash.ui.ContextMenu;
   import flash.ui.ContextMenuItem;
-  import flash.utils.setInterval;
-  import flash.utils.clearInterval;
   import flash.utils.Dictionary;
   import flash.utils.Timer;
+  import flash.utils.clearInterval;
+  import flash.utils.setInterval;
 
   public class SoundManager2_AS3 extends Sprite {
 
@@ -82,10 +82,14 @@ package {
         version_as += ' - cross-domain enabled';
       }
 
-      this.paramList = this.root.loaderInfo.parameters;
+	  if( this.root ){
+	      this.paramList = this.root.loaderInfo.parameters;
+	  }else if( loaderInfo ) {
+		  this.paramList = loaderInfo.parameters;
+	  }
 
       // <d>
-      if (this.paramList['debug'] == 1) {
+      if (this.paramList && this.paramList['debug'] == 1) {
         this.flashDebugEnabled = true;
       }
 
@@ -182,13 +186,14 @@ package {
         s.setAutoPlay(autoPlay);
       }
     }
-
+	
     // methods
     // -----------------------------------
 
     public function writeDebug (s:String, bTimestamp: Boolean = false) : Boolean {
       if (!debugEnabled) return false;
       // <d>
+	  trace(s);
       ExternalInterface.call(baseJSController + "['_writeDebug']", "(Flash): " + s, null, bTimestamp);
       // </d>
       return true;
@@ -665,6 +670,8 @@ package {
         s.loadSound(sURL);
       } catch(e: Error) {
         // oh well
+        trace(s);
+        //throw e;
         writeDebug('_load: Error loading ' + sURL + '. Flash error detail: ' + e.toString());
       }
 
@@ -829,7 +836,8 @@ package {
       }
       s.handledDataError = false; // reset this flag
       try {
-        s.start(nMsecOffset, nLoops);
+//       s.testPlay();
+		     s.start(nMsecOffset, nLoops);
       } catch(e: Error) {
         writeDebug('Could not start ' + sID + ': ' + e.toString());
       }
@@ -867,7 +875,11 @@ package {
         // writeDebug('resuming - playing at '+s.lastValues.position+', '+s.lastValues.loops+' times');
         s.paused = false;
         if (s.useNetstream) {
-          s.ns.resume();
+          if( !s.nc.connected ){
+				s.reconnect();
+			}else{
+	          s.ns.resume();
+			}
         } else {
           s.start(s.lastValues.position, s.lastValues.loops);
         }
@@ -878,6 +890,24 @@ package {
         }
       }
     }
+	
+	public function disconnect(sID:String):void{
+		var s: SoundManager2_SMSound_AS3 = soundObjects[sID];
+		if(s.nc.connected){
+			s.nc.close();
+			//s.nc.call("disconnectClient", null);
+		}
+	}
+	
+	public function reconnect(sID:String):void{
+		var s: SoundManager2_SMSound_AS3 = soundObjects[sID];
+		s.reconnect();
+	}
+	
+	/*public function getBytesLoaded(sID:String):int{
+		var s: SoundManager2_SMSound_AS3 = soundObjects[sID];
+		return s.bytesLoaded;
+	}*/
 
     public function _setPan(sID:String, nPan:Number) : void {
       if (soundObjects[sID]) {
