@@ -68,7 +68,6 @@ package
 		public var useEvents : Boolean = false;
 		public var sound : Sound = new Sound();
 
-		public var customClient : Object;
 		public var nc : NetConnection;
 		public var ns : NetStream = null;
 		public var st : SoundTransform;
@@ -92,9 +91,10 @@ package
 		
 		private var _closeTime:Number;
 
-		public function SoundManager2_SMSound_AS3(oSoundManager : SoundManager2_AS3, sIDArg : String=null, sURLArg : String=null, usePeakData : Boolean=false, useWaveformData : Boolean=false, useEQData : Boolean=false, useNetstreamArg : Boolean=false, netStreamBufferTime : Number=1, serverUrl : String=null, duration : Number=0, autoPlay : Boolean=false, useEvents : Boolean=false, bufferTimes : Array=null, recordStats : Boolean=false, autoLoad : Boolean=false, checkPolicyFile : Boolean=false)
+		public function SoundManager2_SMSound_AS3(oSoundManager : SoundManager2_AS3, netconnection:NetConnection, sIDArg : String=null, sURLArg : String=null, usePeakData : Boolean=false, useWaveformData : Boolean=false, useEQData : Boolean=false, useNetstreamArg : Boolean=false, netStreamBufferTime : Number=1, serverUrl : String=null, duration : Number=0, autoPlay : Boolean=false, useEvents : Boolean=false, bufferTimes : Array=null, recordStats : Boolean=false, autoLoad : Boolean=false, checkPolicyFile : Boolean=false)
 		{
 			this.sm = oSoundManager;
+			this.nc = netconnection;
 			this.sID = sIDArg;
 			this.sURL = sURLArg;
 			this.usePeakData = usePeakData;
@@ -157,32 +157,28 @@ package
 				//this.pauseOnBufferFull = true;
 			}
 
-			this.customClient = new Object();
-			this.nc = new NetConnection();
-
-			// Handle FMS bandwidth check callback.
-			// @see onBWDone
-			// @see http://www.adobe.com/devnet/flashmediaserver/articles/dynamic_stream_switching_04.html
-			// @see http://www.johncblandii.com/index.php/2007/12/fms-a-quick-fix-for-missing-onbwdone-onfcsubscribe-etc.html
-			this.nc.client = this;
-
 			// TODO: security/IO error handling
 			// this.nc.addEventListener(SecurityErrorEvent.SECURITY_ERROR, doSecurityError);
-			nc.addEventListener(NetStatusEvent.NET_STATUS, netStatusHandler);
+			if( !nc.hasEventListener( NetStatusEvent.NET_STATUS ) ){
+				nc.addEventListener(NetStatusEvent.NET_STATUS, netStatusHandler);
+			}
 
 			if (this.serverUrl != null)
 			{
 				writeDebug('SoundManager2_SMSound_AS3: NetConnection: connecting to server ' + this.serverUrl + '...');
 			}
-			this.nc.connect(serverUrl);
+
+			if( !this.nc.connected ){
+				this.nc.connect(serverUrl);
+			}
 		}
 
 		//used for cases when the connection is dropped
 		public function reconnect() : void
 		{
-      writeDebug('SoundManager2_SMSound_AS3: in reconnect');
+      		writeDebug('SoundManager2_SMSound_AS3: in reconnect');
 			reconnecting = true;
-			connect();
+			this.nc.connect(serverUrl);
 		}
 
 		public function netStatusHandler(event : NetStatusEvent) : void
@@ -204,8 +200,7 @@ package
 						// bufferTime reference: http://livedocs.adobe.com/flash/9.0/ActionScriptLangRefV3/flash/net/NetStream.html#bufferTime
 						this.ns.bufferTime = getStartBuffer(); // set to 0.1 or higher. 0 is reported to cause playback issues with static files.
 						this.st = new SoundTransform();
-						this.customClient.onMetaData = this.metaDataHandler;
-						this.ns.client = this.customClient;
+						this.ns.client = this;
 						this.ns.receiveAudio(true);
 						this.addNetstreamEvents();
 
@@ -336,7 +331,7 @@ package
 			return this.sm.writeDebug(s, bTimestamp); // defined in main SM object
 		}
 
-		public function metaDataHandler(infoObject : Object) : void
+		public function onMetaData(infoObject : Object) : void
 		{
 			if (sm.debugEnabled)
 			{
@@ -355,14 +350,6 @@ package
 				// ExternalInterface.call(baseJSObject + "['" + this.sID + "']._whileloading", this.ns.bytesLoaded, this.ns.bytesTotal, infoObject.duration*1000);
 				ExternalInterface.call(baseJSObject + "['" + this.sID + "']._whileloading", this.bytesLoaded, this.bytesTotal, (infoObject.duration || this.duration))
 			}
-			// null this out for the duration of this object's existence.
-			// it may be called multiple times.
-			//this.customClient.onMetaData = function(infoObject: Object) : void {}
-		}
-
-		public function closeHandler(infoObject : Object) : void
-		{
-			trace("close handled...");
 		}
 
 		public function getBytesLoaded() : int
@@ -407,9 +394,6 @@ package
 			{
 
 				writeDebug("SMSound::start nMsecOffset " + nMsecOffset + ' nLoops ' + nLoops + ' current bufferTime ' + this.ns.bufferTime + ' current bufferLength ' + this.ns.bufferLength + ' this.lastValues.position ' + this.lastValues.position);
-
-				this.customClient.onMetaData = this.metaDataHandler;
-				this.customClient.close = this.closeHandler;
 
 				// Don't seek if we don't have to because it destroys the buffer
 				var set_position : Boolean = this.lastValues.position != null && this.lastValues.position != nMsecOffset;
@@ -573,14 +557,6 @@ package
 		{
 			this.connect_time = Math.round(getTimer() - this.start_time);
 			writeDebug('Connect took ' + this.connect_time + ' ms');
-		}
-
-		// Handle FMS bandwidth check callback.
-		// @see http://www.adobe.com/devnet/flashmediaserver/articles/dynamic_stream_switching_04.html
-		// @see http://www.johncblandii.com/index.php/2007/12/fms-a-quick-fix-for-missing-onbwdone-onfcsubscribe-etc.html
-		public function onBWDone() : void
-		{
-			// writeDebug('onBWDone: called and ignored');
 		}
 
 		// NetStream client callback. Invoked when the song is complete.

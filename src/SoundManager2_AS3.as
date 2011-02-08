@@ -13,19 +13,14 @@
 package {
 
   import flash.display.Sprite;
-  import flash.events.AsyncErrorEvent;
   import flash.events.Event;
   import flash.events.IOErrorEvent;
-  import flash.events.MouseEvent;
-  import flash.events.NetStatusEvent;
   import flash.events.SecurityErrorEvent;
   import flash.events.TimerEvent;
   import flash.external.ExternalInterface;
-  import flash.media.Sound;
   import flash.media.SoundChannel;
   import flash.media.SoundMixer;
-  import flash.net.URLLoader;
-  import flash.net.URLRequest;
+  import flash.net.NetConnection;
   import flash.system.Security;
   import flash.system.System;
   import flash.text.TextField;
@@ -35,8 +30,6 @@ package {
   import flash.ui.ContextMenuItem;
   import flash.utils.Dictionary;
   import flash.utils.Timer;
-  import flash.utils.clearInterval;
-  import flash.utils.setInterval;
 
   public class SoundManager2_AS3 extends Sprite {
 
@@ -74,6 +67,8 @@ package {
     public var textStyle: TextFormat = new TextFormat();
     public var didSandboxMessage: Boolean = false;
     public var caughtFatal: Boolean = false;
+	
+	private var _netConnection:NetConnection;
 
     public function SoundManager2_AS3() {
 
@@ -739,8 +734,16 @@ package {
     }
 
     public function _createSound(sID:String, sURL:String, justBeforeFinishOffset: int, usePeakData: Boolean, useWaveformData: Boolean, useEQData: Boolean, useNetstream: Boolean, bufferTime:Number, loops:Number, serverUrl:String, duration:Number, autoPlay:Boolean, useEvents:Boolean, bufferTimes:Array, recordStats:Boolean, autoLoad:Boolean, checkPolicyFile:Boolean) : void {
-      var s: SoundManager2_SMSound_AS3 = new SoundManager2_SMSound_AS3(this, sID, sURL, usePeakData, useWaveformData, useEQData, useNetstream, bufferTime, serverUrl, duration, autoPlay, useEvents, bufferTimes, recordStats, autoLoad, checkPolicyFile);
-      if (!soundObjects[sID]) {
+      if( useNetstream && !_netConnection ){
+		  _netConnection = new NetConnection();
+		  // @see onBWDone
+		  // @see close
+		 _netConnection.client = this;
+	  }
+	  
+	  var s: SoundManager2_SMSound_AS3 = new SoundManager2_SMSound_AS3(this, _netConnection ,sID, sURL, usePeakData, useWaveformData, useEQData, useNetstream, bufferTime, serverUrl, duration, autoPlay, useEvents, bufferTimes, recordStats, autoLoad, checkPolicyFile);
+     
+	  if (!soundObjects[sID]) {
         sounds.push(sID);
       }
       soundObjects[sID] = s;
@@ -836,8 +839,8 @@ package {
       }
       s.handledDataError = false; // reset this flag
       try {
-//       s.testPlay();
-		     s.start(nMsecOffset, nLoops);
+		//s.testPlay();
+		s.start(nMsecOffset, nLoops);
       } catch(e: Error) {
         writeDebug('Could not start ' + sID + ': ' + e.toString());
       }
@@ -937,6 +940,19 @@ package {
         timer.reset();
       }
     }
+	
+	// Handle FMS bandwidth check callback.
+	// @see http://www.adobe.com/devnet/flashmediaserver/articles/dynamic_stream_switching_04.html
+	// @see http://www.johncblandii.com/index.php/2007/12/fms-a-quick-fix-for-missing-onbwdone-onfcsubscribe-etc.html
+	public function onBWDone() : void
+	{
+		writeDebug('onBWDone: called and ignored');
+	}
+	
+	public function close(infoObject : Object) : void
+	{
+		writeDebug('close: called and ignored');
+	}
 
     public function _getMemoryUse() : String {
       return System.totalMemory.toString();
