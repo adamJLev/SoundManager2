@@ -182,6 +182,13 @@ package
 			reconnecting = true;
 			this.nc.connect(serverUrl);
 		}
+		
+		public function resumeStream() : void
+		{
+      		writeDebug('SoundManager2_SMSound_AS3: in resume');
+			paused = false;
+			ns.resume();
+		}
 
 		public function netStatusHandler(event : NetStatusEvent) : void
 		{
@@ -220,7 +227,8 @@ package
 						if( _pendingConnection ){
 							_pendingConnection = false;
 							writeDebug('_pendingConnection false ');
-							start( 0, 1 );
+							loadSound( sURL );
+							//start( 0, 1 );
 						}
 						if (reconnecting)
 						{
@@ -478,18 +486,22 @@ package
 		{
 			if (this.useNetstream)
 			{
-				this.useEvents = true;
-				if (this.didLoad != true)
-				{
-					this.ns.play(this.sURL); // load streams by playing them
-					if (!this.autoPlay)
+				if( this.connected && this.nc.connected ){
+					this.useEvents = true;
+					if (this.didLoad != true)
 					{
-						this.pauseOnBufferFull = true;
+						this.ns.play( this.sURL ); // load streams by playing them
+						if (!this.autoPlay)
+						{
+							this.pauseOnBufferFull = true;
+						}
+						this.paused = false;
 					}
-					this.paused = false;
+					// this.addEventListener(Event.SOUND_COMPLETE, _onfinish);
+					this.applyTransform();
+				}else{
+					_pendingConnection = true;
 				}
-				// this.addEventListener(Event.SOUND_COMPLETE, _onfinish);
-				this.applyTransform();
 			}
 			else
 			{

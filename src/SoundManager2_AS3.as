@@ -876,12 +876,11 @@ package {
       } else {
         // resume playing from last position
         // writeDebug('resuming - playing at '+s.lastValues.position+', '+s.lastValues.loops+' times');
-        s.paused = false;
         if (s.useNetstream) {
           if( !s.nc.connected ){
 				s.reconnect();
 			}else{
-	          s.ns.resume();
+			  s.resumeStream();
 			}
         } else {
           s.start(s.lastValues.position, s.lastValues.loops);
