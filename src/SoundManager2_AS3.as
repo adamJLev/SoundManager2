@@ -855,11 +855,11 @@ package {
       // writeDebug('_pause()');
       var s: SoundManager2_SMSound_AS3 = soundObjects[sID];
       if (!s) return void;
-      // writeDebug('s.paused: '+s.paused);
+      writeDebug('s.paused: '+s.paused);
       if (!s.paused) {
         // reference current position, stop sound
         s.paused = true;
-        // writeDebug('_pause(): position: '+s.lastValues.position);
+        writeDebug('_pause(): position: '+s.lastValues.position);
         if (s.useNetstream) {
           if (s.ns) {
             s.lastValues.position = s.ns.time*1000;
@@ -875,7 +875,7 @@ package {
         }
       } else {
         // resume playing from last position
-        // writeDebug('resuming - playing at '+s.lastValues.position+', '+s.lastValues.loops+' times');
+        writeDebug('resuming - playing at '+s.lastValues.position+', '+s.lastValues.loops+' times');
         if (s.useNetstream) {
           if( !s.nc.connected ){
 				s.reconnect();
