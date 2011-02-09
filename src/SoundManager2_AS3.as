@@ -951,7 +951,8 @@ package {
 	
 	public function close(infoObject:Object=null) : void
 	{
-		writeDebug('close: called and ignored');
+		writeDebug('close: called and ignored' + infoObject);
+		_netConnection.close();
 	}
 
     public function _getMemoryUse() : String {
