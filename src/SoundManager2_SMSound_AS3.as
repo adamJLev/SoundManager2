@@ -246,6 +246,7 @@ package
 				case "NetConnection.Connect.Closed":
 					this.failed = true;
 					_closeTime = this.ns.time;
+					this.connected = false;
 					if( !this.timedOut ){
 						ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", 'Connection closed!', event.info.level, event.info.code);
 						writeDebug("NetConnection: Connection closed!");

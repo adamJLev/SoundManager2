@@ -576,10 +576,10 @@ package {
       if (s.lastValues) {
         s.lastValues.position = nSecOffset; // s.soundChannel.position;
       }
-      if (s.useNetstream) {
+      if (s.connected && s.useNetstream) {
         // Minimize the buffer so playback starts ASAP
         s.setBuffer(s.getStartBuffer());
-        writeDebug('setPosition: setting buffer to '+s.ns.bufferTime+' secs');
+        writeDebug('sID' + sID + ' setPosition: setting buffer to '+s.ns.bufferTime+' secs');
 
         nSecOffset = nSecOffset > 0 ? nSecOffset / 1000 : 0;
         s.ns.seek(nSecOffset);
