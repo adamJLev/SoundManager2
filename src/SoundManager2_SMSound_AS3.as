@@ -272,11 +272,11 @@ package
 				// KJV: Can't use this yet because by the time you get your connection back the
 				// song has reached it's maximum retries, so it doesn't retry again.  We need
 				// a new _ondisconnect handler.
-				//case "NetConnection.Connect.NetworkChange":
+				case "NetConnection.Connect.NetworkChange":
 				//  this.failed = true;
 				//  writeDebug("NetConnection: Network connection status changed");
-				//  ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", 'Reconnecting...');
-				//  break;
+				  ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onnetworkchange", 'Reconnecting...');
+				  break;
 
 				// Consider everything else a failure...
 				default:
