@@ -162,7 +162,7 @@ package
 			// TODO: security/IO error handling
 			// this.nc.addEventListener(SecurityErrorEvent.SECURITY_ERROR, doSecurityError);
 			if( !nc.hasEventListener( NetStatusEvent.NET_STATUS ) ){
-				nc.addEventListener(NetStatusEvent.NET_STATUS, netStatusHandler);
+				nc.addEventListener(NetStatusEvent.NET_STATUS, onNetConnectionStatus);
 			}
 
 			if (this.serverUrl != null)
@@ -190,11 +190,11 @@ package
 			ns.resume();
 		}
 
-		public function netStatusHandler(event : NetStatusEvent) : void
+		public function onNetConnectionStatus(event : NetStatusEvent) : void
 		{
 			if (this.useEvents)
 			{
-				writeDebug('netStatusHandler: ' + event.info.code);
+				writeDebug('onNetConnectionStatus: ' + event.info.code);
 			}
 
 			switch (event.info.code)
@@ -233,9 +233,8 @@ package
 						if (reconnecting)
 						{
               				writeDebug('reconnecting ' + this.sID);
-							reconnecting = false;
-							ns.play( this.sURL, _closeTime );
-							_closeTime = 0;
+							//reconnecting = false;
+							ns.play( this.sURL );
 						}
 					}
 					catch (e : Error)
@@ -611,7 +610,7 @@ package
 			writeDebug('asyncError: ' + e.text);
 		}
 
-		public function doNetStatus(e : NetStatusEvent) : void
+		public function onNetStreamStatus(e : NetStatusEvent) : void
 		{
 
 			// Handle failures
@@ -647,6 +646,14 @@ package
 			else if (e.info.code == "NetStream.Buffer.Flush"){
 			}else if (e.info.code == "NetStream.Play.Start" || e.info.code == "NetStream.Buffer.Empty" || e.info.code == "NetStream.Buffer.Full")
 			{
+				
+				if( e.info.code == "NetStream.Play.Start" ){
+					if( reconnecting ){
+						ns.seek( _closeTime );
+						_closeTime = 0;
+						reconnecting = false;
+					}
+				}
 
 				// First time buffer has filled. Print debugging output.
 				if (this.recordStats && !this.play_time)
@@ -747,17 +754,17 @@ package
 		public function addNetstreamEvents() : void
 		{
 			ns.addEventListener(AsyncErrorEvent.ASYNC_ERROR, doAsyncError);
-			ns.addEventListener(NetStatusEvent.NET_STATUS, doNetStatus);
+			ns.addEventListener(NetStatusEvent.NET_STATUS, onNetStreamStatus);
 			ns.addEventListener(IOErrorEvent.IO_ERROR, doIOError);
 		}
 
 		public function removeNetstreamEvents() : void
 		{
 			ns.removeEventListener(AsyncErrorEvent.ASYNC_ERROR, doAsyncError);
-			ns.removeEventListener(NetStatusEvent.NET_STATUS, doNetStatus);
+			ns.removeEventListener(NetStatusEvent.NET_STATUS, onNetStreamStatus);
 			ns.removeEventListener(IOErrorEvent.IO_ERROR, doIOError);
 			// KJV Stop listening for NetConnection events on the sound
-			nc.removeEventListener(NetStatusEvent.NET_STATUS, netStatusHandler);
+			nc.removeEventListener(NetStatusEvent.NET_STATUS, onNetConnectionStatus);
 		}
 
 	}
