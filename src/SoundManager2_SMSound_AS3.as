@@ -90,7 +90,7 @@ package
 		private var _loadProgressTimer : Timer = new Timer(500, 0);
 		
 		private var _closeTime:Number;
-		private var timedOut:Boolean;
+		//private var timedOut:Boolean;
 
 		public function SoundManager2_SMSound_AS3(oSoundManager : SoundManager2_AS3, netconnection:NetConnection, sIDArg : String=null, sURLArg : String=null, usePeakData : Boolean=false, useWaveformData : Boolean=false, useEQData : Boolean=false, useNetstreamArg : Boolean=false, netStreamBufferTime : Number=1, serverUrl : String=null, duration : Number=0, autoPlay : Boolean=false, useEvents : Boolean=false, bufferTimes : Array=null, recordStats : Boolean=false, autoLoad : Boolean=false, checkPolicyFile : Boolean=false)
 		{
@@ -247,12 +247,13 @@ package
 					this.failed = true;
 					_closeTime = this.ns.time;
 					this.connected = false;
-					if( !this.timedOut ){
+					//if( !this.timedOut ){
 						ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", 'Connection closed!', event.info.level, event.info.code);
 						writeDebug("NetConnection: Connection closed!");
-					}else{
+					//}
+					/*else{
 						writeDebug("NetConnection: Connection closed by Timeout. Ignoring...");
-					}
+					}*/
 					break;
 
 				// Couldn't establish a connection with the server. Attempts to connect to the server
@@ -268,7 +269,7 @@ package
 				// AJL: Experimental
 				case "NetConnection.Connect.IdleTimeOut":
 					this.failed = true;
-					this.timedOut = true;
+					//this.timedOut = true;
 					writeDebug("NetConnection: got IdleTimeOut '" + event.info.code + "'! Description: " + event.info.description);
 					break;
 
