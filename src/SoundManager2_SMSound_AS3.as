@@ -251,7 +251,6 @@ package
 						writeDebug("NetConnection: Connection closed!");
 					}else{
 						writeDebug("NetConnection: Connection closed by Timeout. Ignoring...");
-						this.timedOut = false;
 					}
 					break;
 
@@ -268,6 +267,7 @@ package
 				// AJL: Experimental
 				case "NetConnection.Connect.IdleTimeOut":
 					this.failed = true;
+					this.timedOut = true;
 					writeDebug("NetConnection: got IdleTimeOut '" + event.info.code + "'! Description: " + event.info.description);
 					break;
 
