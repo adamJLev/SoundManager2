@@ -703,7 +703,8 @@ package
 				{
 					if (this.duration && (this.ns.time * 1000) < (this.duration - 5000))
 					{
-						writeDebug('Ignoring Buffer.Empty because this is too early to be the end of the stream! (sID: ' + this.sID + ', time: ' + (this.ns.time * 1000) + ', duration: ' + this.duration + ')');
+						writeDebug('Buffer.Empty but not end of stream. retry seeking to '+ (this.ns.time - 1) +'  (sID: ' + this.sID + ', time: ' + (this.ns.time * 1000) + ', duration: ' + this.duration + ')');
+						ns.seek( ns.time - 1 );
 					}
 					else
 					{
