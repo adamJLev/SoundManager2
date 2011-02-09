@@ -84,6 +84,7 @@ package
 		public var checkPolicyFile : Boolean = false;
 
 		private var reconnecting : Boolean;
+		private var _pendingConnection : Boolean;
 		private var nsPlayOptions2 : NetStreamPlayOptions;
 
 		private var _isLoading : Boolean;
@@ -206,6 +207,7 @@ package
 						this.addNetstreamEvents();
 						this.failed = false;
 						this.connected = true;
+						
 						if (recordStats)
 						{
 							this.recordConnectTime();
@@ -215,9 +217,14 @@ package
 							writeDebug('firing _onconnect for ' + this.sID);
 							ExternalInterface.call(this.sm.baseJSObject + "['" + this.sID + "']._onconnect", 1);
 						}
+						if( _pendingConnection ){
+							_pendingConnection = false;
+							writeDebug('_pendingConnection false ');
+							start( 0, 1 );
+						}
 						if (reconnecting)
 						{
-              writeDebug('reconnecting ' + this.sID);
+              				writeDebug('reconnecting ' + this.sID);
 							reconnecting = false;
 							ns.play( this.sURL, _closeTime );
 							_closeTime = 0;
@@ -397,7 +404,7 @@ package
 		public function start(nMsecOffset : int, nLoops : int) : void
 		{
 			this.useEvents = true;
-			if (this.useNetstream)
+			if (this.connected && this.useNetstream && this.nc.connected)
 			{
 
 				writeDebug("SMSound::start nMsecOffset " + nMsecOffset + ' nLoops ' + nLoops + ' current bufferTime ' + this.ns.bufferTime + ' current bufferLength ' + this.ns.bufferLength + ' this.lastValues.position ' + this.lastValues.position);
@@ -448,8 +455,11 @@ package
 				// this.ns.addEventListener(Event.SOUND_COMPLETE, _onfinish);
 				this.applyTransform();
 
+			}else if( (!this.connected || !this.nc.connected ) && this.useNetstream ){
+				_pendingConnection = true;
+				writeDebug( "pendingConnection, connected: " + this.connected +"nc.connected: " + this.nc.connected );
 			}
-			else
+			else if( !this.useNetstream )
 			{
 				// writeDebug('start: seeking to '+nMsecOffset+', '+nLoops+(nLoops==1?' loop':' loops'));
 				this.soundChannel = this.play(nMsecOffset, nLoops);
@@ -622,11 +632,8 @@ package
 				}
 
 			}
-			else if (e.info.code == "NetStream.Buffer.Flush")
-			{
-				writeDebug('flushh');
-			}
-			else if (e.info.code == "NetStream.Play.Start" || e.info.code == "NetStream.Buffer.Empty" || e.info.code == "NetStream.Buffer.Full")
+			else if (e.info.code == "NetStream.Buffer.Flush"){
+			}else if (e.info.code == "NetStream.Play.Start" || e.info.code == "NetStream.Buffer.Empty" || e.info.code == "NetStream.Buffer.Full")
 			{
 
 				// First time buffer has filled. Print debugging output.
