@@ -90,6 +90,7 @@ package
 		private var _loadProgressTimer : Timer = new Timer(500, 0);
 		
 		private var _closeTime:Number;
+		private var timedOut:Boolean;
 
 		public function SoundManager2_SMSound_AS3(oSoundManager : SoundManager2_AS3, netconnection:NetConnection, sIDArg : String=null, sURLArg : String=null, usePeakData : Boolean=false, useWaveformData : Boolean=false, useEQData : Boolean=false, useNetstreamArg : Boolean=false, netStreamBufferTime : Number=1, serverUrl : String=null, duration : Number=0, autoPlay : Boolean=false, useEvents : Boolean=false, bufferTimes : Array=null, recordStats : Boolean=false, autoLoad : Boolean=false, checkPolicyFile : Boolean=false)
 		{
@@ -203,7 +204,7 @@ package
 						this.ns.client = this;
 						this.ns.receiveAudio(true);
 						this.addNetstreamEvents();
-
+						this.failed = false;
 						this.connected = true;
 						if (recordStats)
 						{
@@ -245,8 +246,13 @@ package
 				case "NetConnection.Connect.Closed":
 					this.failed = true;
 					_closeTime = this.ns.time;
-					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", 'Connection closed!', event.info.level, event.info.code);
-					writeDebug("NetConnection: Connection closed!");
+					if( !this.timedOut ){
+						ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", 'Connection closed!', event.info.level, event.info.code);
+						writeDebug("NetConnection: Connection closed!");
+					}else{
+						writeDebug("NetConnection: Connection closed by Timeout. Ignoring...");
+						this.timedOut = false;
+					}
 					break;
 
 				// Couldn't establish a connection with the server. Attempts to connect to the server
@@ -292,7 +298,7 @@ package
 		// Only set the buffer if it's different to the current buffer.
 		public function setBuffer(buffer : int) : void
 		{
-			if (buffer != this.ns.bufferTime)
+			if (this.ns && buffer != this.ns.bufferTime)
 			{
 				this.ns.bufferTime = buffer;
 				writeDebug('set buffer to ' + this.ns.bufferTime + ' secs');

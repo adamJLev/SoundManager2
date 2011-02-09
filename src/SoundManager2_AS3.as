@@ -949,7 +949,7 @@ package {
 		writeDebug('onBWDone: called and ignored');
 	}
 	
-	public function close() : void
+	public function close(infoObject:Object=null) : void
 	{
 		writeDebug('close: called and ignored');
 	}
