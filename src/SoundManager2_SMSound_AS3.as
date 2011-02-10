@@ -90,6 +90,7 @@ package
 		private var _loadProgressTimer : Timer = new Timer(500, 0);
 		
 		private var _closeTime:Number;
+		private var _networkConnected:Boolean;
 		//private var timedOut:Boolean;
 
 		public function SoundManager2_SMSound_AS3(oSoundManager : SoundManager2_AS3, netconnection:NetConnection, sIDArg : String=null, sURLArg : String=null, usePeakData : Boolean=false, useWaveformData : Boolean=false, useEQData : Boolean=false, useNetstreamArg : Boolean=false, netStreamBufferTime : Number=1, serverUrl : String=null, duration : Number=0, autoPlay : Boolean=false, useEvents : Boolean=false, bufferTimes : Array=null, recordStats : Boolean=false, autoLoad : Boolean=false, checkPolicyFile : Boolean=false)
@@ -213,6 +214,7 @@ package
 						this.addNetstreamEvents();
 						this.failed = false;
 						this.connected = true;
+						_networkConnected = true;
 						
 						if (recordStats)
 						{
@@ -297,9 +299,13 @@ package
 				//  this.failed = true;
 				//  writeDebug("NetConnection: Network connection status changed");
 				  ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onnetworkchange", 'Reconnecting...');
-				  _closeTime = ns.time;
-				  _pendingConnection = true;
-				  reconnect();
+				  _networkConnected = !_networkConnected;
+				  
+				  if( _networkConnected ){
+					  _closeTime = ns.time;
+					  _pendingConnection = true;
+					  reconnect();
+				  }					  
 				  break;
 
 				// Consider everything else a failure...
