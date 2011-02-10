@@ -712,7 +712,7 @@ package
 					if (this.duration && (this.ns.time * 1000) < (this.duration - 5000))
 					{
 						writeDebug('Buffer.Empty but not end of stream. retry seeking to '+ (this.ns.time - 1) +'  (sID: ' + this.sID + ', time: ' + (this.ns.time * 1000) + ', duration: ' + this.duration + ')');
-						ns.seek( ns.time - 1 );
+						if( ns.time > 2) ns.seek( ns.time - 1 );
 					}
 					else
 					{
