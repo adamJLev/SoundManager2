@@ -470,7 +470,7 @@ package
 				// this.ns.addEventListener(Event.SOUND_COMPLETE, _onfinish);
 				this.applyTransform();
 
-			}else if( (!this.connected || !this.nc.connected ) && this.useNetstream ){
+			}else if( (!this.connected || (this.nc && !this.nc.connected) ) && this.useNetstream ){
 				_pendingConnection = true;
 				writeDebug( "pendingConnection, connected: " + this.connected +"nc.connected: " + this.nc.connected );
 			}
