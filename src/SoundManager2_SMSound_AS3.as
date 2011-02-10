@@ -23,7 +23,6 @@ package
 	import flash.net.NetConnection;
 	import flash.net.NetStream;
 	import flash.net.NetStreamPlayOptions;
-	import flash.net.NetStreamPlayTransitions;
 	import flash.net.URLRequest;
 	import flash.utils.ByteArray;
 	import flash.utils.Timer;
@@ -298,6 +297,9 @@ package
 				//  this.failed = true;
 				//  writeDebug("NetConnection: Network connection status changed");
 				  ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onnetworkchange", 'Reconnecting...');
+				  _closeTime = ns.time;
+				  _pendingConnection = true;
+				  reconnect();
 				  break;
 
 				// Consider everything else a failure...
@@ -309,7 +311,7 @@ package
 			}
 
 		}
-
+		
 		// Set the buffer size on the current NetSream instance to <tt>buffer</tt> secs
 		// Only set the buffer if it's different to the current buffer.
 		public function setBuffer(buffer : int) : void
