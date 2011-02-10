@@ -185,9 +185,11 @@ package
 		
 		public function resumeStream() : void
 		{
-      		writeDebug('SoundManager2_SMSound_AS3: in resume');
-			paused = false;
-			ns.resume();
+			if( !reconnecting ){
+				writeDebug('SoundManager2_SMSound_AS3: in resume');
+				paused = false;
+				ns.resume();
+			}
 		}
 
 		public function onNetConnectionStatus(event : NetStatusEvent) : void
@@ -235,7 +237,7 @@ package
 						{
               				writeDebug('reconnecting ' + this.sID);
 							//reconnecting = false;
-							ns.play( this.sURL );
+							if( !paused ) ns.play( this.sURL );
 						}
 					}
 					catch (e : Error)
