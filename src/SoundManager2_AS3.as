@@ -871,7 +871,6 @@ package {
           if (s.soundChannel) {
             s.lastValues.position = s.soundChannel.position;
             s.soundChannel.stop();
-			s.paused = false;
           }
         }
       } else {
@@ -885,6 +884,7 @@ package {
 			}
         } else {
           s.start(s.lastValues.position, s.lastValues.loops);
+		  s.paused = false;
         }
         try {
           registerOnComplete(sID);
