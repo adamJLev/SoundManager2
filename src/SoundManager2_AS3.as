@@ -15,6 +15,7 @@ package {
   import flash.display.Sprite;
   import flash.events.Event;
   import flash.events.IOErrorEvent;
+  import flash.events.NetStatusEvent;
   import flash.events.SecurityErrorEvent;
   import flash.events.TimerEvent;
   import flash.external.ExternalInterface;
@@ -69,6 +70,8 @@ package {
     public var caughtFatal: Boolean = false;
 	
 	private var _netConnection:NetConnection;
+	
+	private var _pendingConnectionClose : Boolean;
 
     public function SoundManager2_AS3() {
 
@@ -703,14 +706,16 @@ package {
         try {
           s.removeNetstreamEvents();
           s.ns.close();
-          s.nc.close();
-          // s.nc = null;
-          // s.ns = null;
+          if( !_pendingConnectionClose ){
+			  _netConnection.close();
+			  _pendingConnectionClose = true;
+		  }
         } catch(e: Error) {
           // oh well
           writeDebug('_unload(): caught exception during netConnection/netStream close');
         }
       }
+	  //WTF IS THIS?
       var ns:Object = new Object();
       ns.sID = s.sID;
       ns.loops = s.loops;
@@ -739,6 +744,9 @@ package {
 		  // @see onBWDone
 		  // @see close
 		 _netConnection.client = this;
+		 //TODO: move all of the netconnection handling to this class.
+		 //currently only using it to set the firstRun success...
+		 _netConnection.addEventListener(NetStatusEvent.NET_STATUS, onNetConnectionStatus);
 	  }
 	  
 	  var s: SoundManager2_SMSound_AS3 = new SoundManager2_SMSound_AS3(this, _netConnection ,sID, sURL, usePeakData, useWaveformData, useEQData, useNetstream, bufferTime, serverUrl, duration, autoPlay, useEvents, bufferTimes, recordStats, autoLoad, checkPolicyFile);
@@ -763,28 +771,41 @@ package {
         rightPeak: 0,
         bufferLength: 0
       };
+	  
+	  /*if( _netConnection && _netConnection.connected ){
+		  s.loadSound( sURL );
+		  _start( sID, 0, 1 );
+	  }*/
+	  
     }
 
     public function _destroySound(sID:String) : void {
       // for the power of garbage collection! .. er, Greyskull!
       var s: SoundManager2_SMSound_AS3 = (soundObjects[sID] || null);
       if (!s) return void;
-      // try to unload the sound
-      for (var i: int = 0, j: int = sounds.length; i < j; i++) {
-        if (sounds[i] == sID) {
-          sounds.splice(i, 1);
-          break;
-        }
-      }
-      if (s.soundChannel) {
-        s.soundChannel.stop();
-      }
-      // if is a movie, remove that as well.
-      if (s.useNetstream) {
-        // s.nc.client = null;
+	  
+	  if( !s.useNetstream ){
+	      // try to unload the sound
+	      for (var i: int = 0, j: int = sounds.length; i < j; i++) {
+	        if (sounds[i] == sID) {
+	          sounds.splice(i, 1);
+	          break;
+	        }
+	      }
+	      if (s.soundChannel) {
+	        s.soundChannel.stop();
+	      }
+		  if (s.didLoad) {
+			  // non-netstream case
+			  try {
+				  s.close(); // close stream only if still loading?
+			  } catch(e: Error) {
+				  // oh well
+			  }
+		  }
+	  }else{
         try {
           s.removeNetstreamEvents();
-          // s.nc.removeEventListener(NetStatusEvent.NET_STATUS, s.doNetStatus);
         } catch(e: Error) {
           writeDebug('_destroySound(): Events already removed from netStream/netConnection?');
         }
@@ -798,14 +819,8 @@ package {
             writeDebug('_destroySound(): caught exception: '+e.toString());
           }
         }
-      } else if (s.didLoad) {
-        // non-netstream case
-        try {
-          s.close(); // close stream only if still loading?
-        } catch(e: Error) {
-          // oh well
-        }
-      }
+	  }
+	  
       s = null;
       soundObjects[sID] = null;
       delete soundObjects[sID];
@@ -893,6 +908,16 @@ package {
         }
       }
     }
+	
+	private function onNetConnectionStatus( event : NetStatusEvent ) : void{
+		switch( event.info.code ){
+			case "NetConnection.Connect.Closed":
+				if( _pendingConnectionClose ){
+					_pendingConnectionClose = false;
+				}
+			break;
+		}
+	}
 	
 	public function disconnect(sID:String):void{
 		var s: SoundManager2_SMSound_AS3 = soundObjects[sID];

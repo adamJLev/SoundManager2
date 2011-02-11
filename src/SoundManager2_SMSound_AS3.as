@@ -139,12 +139,13 @@ package
 
 			writeDebug('SoundManager2_SMSound_AS3: Got duration: ' + duration + ', autoPlay: ' + autoPlay);
 
-			if (this.useNetstream)
-			{
-				connect();
-			}
-			else
-			{
+			if (this.useNetstream){
+				if( !this.nc.connected ){
+					connect();
+				}else{
+					connectSuccess();
+				}
+			}else{
 				this.connect_time = this.start_time;
 				this.connected = true;
 			}
@@ -161,34 +162,69 @@ package
 
 			// TODO: security/IO error handling
 			// this.nc.addEventListener(SecurityErrorEvent.SECURITY_ERROR, doSecurityError);
-			if( !nc.hasEventListener( NetStatusEvent.NET_STATUS ) ){
-				nc.addEventListener(NetStatusEvent.NET_STATUS, onNetConnectionStatus);
-			}
+			nc.addEventListener(NetStatusEvent.NET_STATUS, onNetConnectionStatus);
 
-			if (this.serverUrl != null)
-			{
+			/*if( this.sm.ncfirstRun ){
+				reconnect();
+			}else{*/
 				writeDebug('SoundManager2_SMSound_AS3: NetConnection: connecting to server ' + this.serverUrl + '...');
-			}
-
-			if( !this.nc.connected ){
 				this.nc.connect(serverUrl);
-			}
+			//}
 		}
 
 		//used for cases when the connection is dropped
 		public function reconnect() : void
 		{
-      		writeDebug('SoundManager2_SMSound_AS3: in reconnect');
+      		writeDebug('SoundManager2_SMSound_AS3: Reconnecting to server ');
 			reconnecting = true;
 			this.nc.connect(serverUrl);
 		}
 		
 		public function resumeStream() : void
 		{
-			if( !reconnecting ){
+			//if( !reconnecting ){
 				writeDebug('SoundManager2_SMSound_AS3: in resume');
 				paused = false;
 				ns.resume();
+			//}
+		}
+		
+		
+		//TODO: all of this shouldn't be in this function...
+		//wanted to name createStream but the
+		//js side may be needing parts of this...
+		private function connectSuccess():void{
+			this.ns = new NetStream(this.nc);
+			this.ns.checkPolicyFile = this.checkPolicyFile;
+			// bufferTime reference: http://livedocs.adobe.com/flash/9.0/ActionScriptLangRefV3/flash/net/NetStream.html#bufferTime
+			this.ns.bufferTime = getStartBuffer(); // set to 0.1 or higher. 0 is reported to cause playback issues with static files.
+			this.st = new SoundTransform();
+			this.ns.client = this;
+			this.ns.receiveAudio(true);
+			this.addNetstreamEvents();
+			this.failed = false;
+			this.connected = true;
+			_networkConnected = true;
+			
+			if (recordStats)
+			{
+				this.recordConnectTime();
+			}
+			if (this.useEvents)
+			{
+				writeDebug('firing _onconnect for ' + this.sID);
+				ExternalInterface.call(this.sm.baseJSObject + "['" + this.sID + "']._onconnect", 1);
+			}
+			if( _pendingConnection ){
+				_pendingConnection = false;
+				writeDebug('_pendingConnection false ');
+				loadSound( sURL );
+				//start( 0, 1 );
+			}
+			if (reconnecting)
+			{
+  				writeDebug('reconnecting ' + this.sID);
+				ns.play( this.sURL );
 			}
 		}
 
@@ -206,39 +242,7 @@ package
 					writeDebug('NetConnection: connected');
 					try
 					{
-						this.ns = new NetStream(this.nc);
-						this.ns.checkPolicyFile = this.checkPolicyFile;
-						// bufferTime reference: http://livedocs.adobe.com/flash/9.0/ActionScriptLangRefV3/flash/net/NetStream.html#bufferTime
-						this.ns.bufferTime = getStartBuffer(); // set to 0.1 or higher. 0 is reported to cause playback issues with static files.
-						this.st = new SoundTransform();
-						this.ns.client = this;
-						this.ns.receiveAudio(true);
-						this.addNetstreamEvents();
-						this.failed = false;
-						this.connected = true;
-						_networkConnected = true;
-						
-						if (recordStats)
-						{
-							this.recordConnectTime();
-						}
-						if (this.useEvents)
-						{
-							writeDebug('firing _onconnect for ' + this.sID);
-							ExternalInterface.call(this.sm.baseJSObject + "['" + this.sID + "']._onconnect", 1);
-						}
-						if( _pendingConnection ){
-							_pendingConnection = false;
-							writeDebug('_pendingConnection false ');
-							loadSound( sURL );
-							//start( 0, 1 );
-						}
-						if (reconnecting)
-						{
-              				writeDebug('reconnecting ' + this.sID);
-							//reconnecting = false;
-							if( !paused ) ns.play( this.sURL );
-						}
+						connectSuccess();
 					}
 					catch (e : Error)
 					{
@@ -262,7 +266,7 @@ package
 				// should this call the onFailure handler?
 				case "NetConnection.Connect.Closed":
 					this.failed = true;
-					_closeTime = this.ns.time;
+					if(this.ns) _closeTime = this.ns.time;
 					this.connected = false;
 					//if( !this.timedOut ){
 						ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", 'Connection closed!', event.info.level, event.info.code);
@@ -622,6 +626,7 @@ package
 
 		public function onNetStreamStatus(e : NetStatusEvent) : void
 		{
+			writeDebug('netStatusEvent: ' + e.info.code); // KJV we like to see all events
 
 			// Handle failures
 			if (e.info.code == "NetStream.Failed" || e.info.code == "NetStream.Play.FileStructureInvalid" || e.info.code == "NetStream.Play.StreamNotFound")
@@ -633,8 +638,6 @@ package
 				ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", '', e.info.level, e.info.code);
 				return;
 			}
-
-			writeDebug('netStatusEvent: ' + e.info.code); // KJV we like to see all events
 
 			// When streaming, Stop is called when buffering stops, not when the stream is actually finished.
 			// @see http://www.actionscript.org/forums/archive/index.php3/t-159194.html
