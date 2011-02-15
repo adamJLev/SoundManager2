@@ -92,7 +92,8 @@ package
 		private var _closeTime:Number;
 		private var _networkConnected:Boolean;
 		//private var timedOut:Boolean;
-
+		private var _unpaused:Boolean;
+		
 		public function SoundManager2_SMSound_AS3(oSoundManager : SoundManager2_AS3, netconnection:NetConnection, sIDArg : String=null, sURLArg : String=null, usePeakData : Boolean=false, useWaveformData : Boolean=false, useEQData : Boolean=false, useNetstreamArg : Boolean=false, netStreamBufferTime : Number=1, serverUrl : String=null, duration : Number=0, autoPlay : Boolean=false, useEvents : Boolean=false, bufferTimes : Array=null, recordStats : Boolean=false, autoLoad : Boolean=false, checkPolicyFile : Boolean=false)
 		{
 			this.sm = oSoundManager;
@@ -147,6 +148,7 @@ package
 				}
 			}else{
 				this.connect_time = this.start_time;
+				//this doesnt make sense. but keeping it here.
 				this.connected = true;
 			}
 
@@ -164,12 +166,13 @@ package
 			// this.nc.addEventListener(SecurityErrorEvent.SECURITY_ERROR, doSecurityError);
 			nc.addEventListener(NetStatusEvent.NET_STATUS, onNetConnectionStatus);
 
-			/*if( this.sm.ncfirstRun ){
-				reconnect();
-			}else{*/
-				writeDebug('SoundManager2_SMSound_AS3: NetConnection: connecting to server ' + this.serverUrl + '...');
-				this.nc.connect(serverUrl);
-			//}
+			if( !this.sm.ncfirstRun ){
+				//reconnect();
+				_pendingConnection = true;
+			}
+			
+			writeDebug('SoundManager2_SMSound_AS3: NetConnection: connecting to server ' + this.serverUrl + '...');
+			this.nc.connect(serverUrl);
 		}
 
 		//used for cases when the connection is dropped
@@ -182,11 +185,9 @@ package
 		
 		public function resumeStream() : void
 		{
-			//if( !reconnecting ){
-				writeDebug('SoundManager2_SMSound_AS3: in resume');
-				paused = false;
-				ns.resume();
-			//}
+			writeDebug('SoundManager2_SMSound_AS3: in resume');
+			paused = false;
+			ns.resume();
 		}
 		
 		
@@ -250,12 +251,6 @@ package
 						writeDebug('netStream error: ' + e.toString());
 						ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", 'Connection failed!', event.info.level, event.info.code);
 					}
-					break;
-
-				case "NetStream.Play.StreamNotFound":
-					this.failed = true;
-					writeDebug("NetConnection: Stream not found!");
-					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", 'Stream not found!', event.info.level, event.info.code);
 					break;
 
 				// This is triggered when the sound loses the connection with the server.
@@ -425,7 +420,7 @@ package
 		public function start(nMsecOffset : int, nLoops : int) : void
 		{
 			this.useEvents = true;
-			if (this.connected && this.useNetstream && this.nc.connected)
+			if (this.sm.ncfirstRun && this.connected && this.useNetstream && this.nc.connected )
 			{
 
 				writeDebug("SMSound::start nMsecOffset " + nMsecOffset + ' nLoops ' + nLoops + ' current bufferTime ' + this.ns.bufferTime + ' current bufferLength ' + this.ns.bufferLength + ' this.lastValues.position ' + this.lastValues.position);
@@ -438,29 +433,25 @@ package
 					this.setBuffer(this.getStartBuffer());
 				}
 
-				if (this.paused)
-				{
+				if (this.paused){
 					writeDebug('start: resuming from paused state');
 					this.ns.resume(); // get the sound going again
 					if (!this.didLoad) {
 					  this.didLoad = true;
 					}
 					this.paused = false;
-				}
-				else if (!this.didLoad)
-				{
-					writeDebug('start: !didLoad - playing ' + this.sURL);
+				}else{
+					if (!this.didLoad)
+					{
+						writeDebug('start: !didLoad - playing ' + this.sURL);
+						this.didLoad = true;
+						this.paused = false;
+					}else{
+						// previously loaded, perhaps stopped/finished. play again?
+						writeDebug('playing again (not paused, didLoad = true)');
+					}
 					this.ns.play(this.sURL, 0);
 					this.pauseOnBufferFull = false; // SAS: playing behaviour overrides buffering behaviour
-					this.didLoad = true;
-					this.paused = false;
-				}
-				else
-				{
-					// previously loaded, perhaps stopped/finished. play again?
-					writeDebug('playing again (not paused, didLoad = true)');
-					this.pauseOnBufferFull = false;
-					this.ns.play(this.sURL);
 				}
 
 				// KJV seek after calling play otherwise some streams get a NetStream.Seek.Failed
@@ -469,16 +460,16 @@ package
 				// download.
 				if (set_position)
 				{
+					writeDebug('set position seek: this.lastValues.position: ' + this.lastValues.position);
 					this.ns.seek(this.serverUrl ? nMsecOffset / 1000 : nMsecOffset);
 					this.lastValues.position = nMsecOffset; // https://gist.github.com/1de8a3113cf33d0cff67
 				}
 
-				// this.ns.addEventListener(Event.SOUND_COMPLETE, _onfinish);
 				this.applyTransform();
 
-			}else if( (!this.connected || (this.nc && !this.nc.connected) ) && this.useNetstream ){
+			}else if( (!this.sm.ncfirstRun || !this.connected || (this.nc && !this.nc.connected) ) && this.useNetstream ){
 				_pendingConnection = true;
-				writeDebug( "pendingConnection, connected: " + this.connected +"nc.connected: " + this.nc.connected );
+				writeDebug( "pendingConnection, ncfirstRun "+ sm.ncfirstRun +" connected: " + this.connected +"nc.connected: " + this.nc.connected );
 			}
 			else if( !this.useNetstream )
 			{
@@ -487,7 +478,7 @@ package
 				this.addEventListener(Event.SOUND_COMPLETE, _onfinish);
 				this.applyTransform();
 			}
-
+			
 		}
 
 		private function _onfinish() : void
@@ -510,7 +501,6 @@ package
 						}
 						this.paused = false;
 					}
-					// this.addEventListener(Event.SOUND_COMPLETE, _onfinish);
 					this.applyTransform();
 				}else{
 					_pendingConnection = true;
@@ -601,18 +591,6 @@ package
 			writeDebug('Connect took ' + this.connect_time + ' ms');
 		}
 
-		// NetStream client callback. Invoked when the song is complete.
-		public function onPlayStatus(info : Object) : void
-		{
-			writeDebug('onPlayStatus called with ' + info);
-			switch (info.code)
-			{
-				case "NetStream.Play.Complete":
-					writeDebug('Song has finished!');
-					break;
-			}
-		}
-
 		public function doIOError(e : IOErrorEvent) : void
 		{
 			ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onload", 0); // call onload, assume it failed.
@@ -623,146 +601,88 @@ package
 		{
 			writeDebug('asyncError: ' + e.text);
 		}
-
-		public function onNetStreamStatus(e : NetStatusEvent) : void
+		
+		private function onNetStreamStatus(event : NetStatusEvent) : void
 		{
-			writeDebug('netStatusEvent: ' + e.info.code); // KJV we like to see all events
-
-			// Handle failures
-			if (e.info.code == "NetStream.Failed" || e.info.code == "NetStream.Play.FileStructureInvalid" || e.info.code == "NetStream.Play.StreamNotFound")
+			writeDebug(event.info.code);
+			
+			switch (event.info.code)
 			{
-
-				this.lastNetStatus = e.info.code;
-				writeDebug('netStatusEvent: ' + e.info.code);
-				this.failed = true;
-				ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", '', e.info.level, e.info.code);
-				return;
-			}
-
-			// When streaming, Stop is called when buffering stops, not when the stream is actually finished.
-			// @see http://www.actionscript.org/forums/archive/index.php3/t-159194.html
-			if (e.info.code == "NetStream.Play.Stop")
-			{
-
-				if (!this.useNetstream)
-				{
-					// finished playing
-					// this.didFinish = true; // will be reset via JS callback
-					this.didJustBeforeFinish = false; // reset
-					writeDebug('calling onfinish for a sound');
-					// reset the sound? Move back to position 0?
-					this.sm.checkProgress();
-					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfinish");
-				}
-
-			}
-			else if (e.info.code == "NetStream.Buffer.Flush"){
-			}else if (e.info.code == "NetStream.Play.Start" || e.info.code == "NetStream.Buffer.Empty" || e.info.code == "NetStream.Buffer.Full")
-			{
-				
-				if( e.info.code == "NetStream.Play.Start" ){
+				case "NetStream.Play.Reset":
+					break;
+				case "NetStream.Unpause.Notify":
+					_unpaused = true;
+					break;
+				case "NetStream.Pause.Notify":
+					_unpaused = false;
+					break;
+				case "NetStream.Play.Start":
 					if( reconnecting ){
 						ns.seek( _closeTime );
 						_closeTime = 0;
 						reconnecting = false;
 					}
-				}
-
-				// First time buffer has filled. Print debugging output.
-				if (this.recordStats && !this.play_time)
-				{
-					this.recordPlayTime();
-				}
-
-				// RTMP case..
-				// We wait for the buffer to fill up before pausing the just-loaded song because only if the
-				// buffer is full will the song continue to buffer until the user hits play.
-				if (this.serverUrl && e.info.code == "NetStream.Buffer.Full" && this.pauseOnBufferFull)
-				{
-					this.ns.pause();
-					this.paused = true;
-					this.pauseOnBufferFull = false;
-					// Call pause in JS.  This will call back to us to pause again, but
-					// that should be harmless.
-					writeDebug('Pausing on buffer full');
-					ExternalInterface.call(baseJSObject + "['" + this.sID + "'].pause", false);
-				}
-
-				// The buffer is full.  Increase its size if possible.
-				// Double buffering has not been shown to cause false starts, so this is safe.
-				if (e.info.code == "NetStream.Buffer.Full")
-				{
-					var next_buffer : int = this.getNextBuffer(this.ns.bufferTime);
-					if (next_buffer != this.ns.bufferTime)
-					{
-						this.setBuffer(next_buffer);
+					break;
+				case "NetStream.Buffer.Full":
+					//TODO if autoplay=false, dont start buffering at all.
+					break;
+				case "NetStream.Buffer.Empty":
+					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onbufferchange", 0);
+					//not sure we need/want Stop here.
+					if( lastNetStatus == 'NetStream.Play.Stop' || lastNetStatus == 'NetStream.Buffer.Flush'){
+						if (this.duration && (this.ns.time * 1000) < (this.duration - 5000))
+						{
+							writeDebug('Buffer.Empty but not end of stream. retry seeking to '+ (this.ns.time - 1) +'  (sID: ' + this.sID + ', time: ' + (this.ns.time * 1000) + ', duration: ' + this.duration + ')');
+							if( ns.time > 2) ns.seek( ns.time - 1 );
+						}else{
+							//lame name.
+							this.didJustBeforeFinish = false; // reset
+							this.finished = true;
+							writeDebug('calling onfinish for sound ' + this.sID);
+							this.sm.checkProgress();
+							ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfinish");
+						}
 					}
-				}
-
-				var isNetstreamBuffering : Boolean = (e.info.code == "NetStream.Buffer.Empty" || e.info.code == "NetStream.Play.Start");
-				// assume buffering when we start playing, eg. initial load.
-				if (isNetstreamBuffering != this.lastValues.isBuffering)
-				{
-					this.lastValues.isBuffering = isNetstreamBuffering;
-					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onbufferchange", this.lastValues.isBuffering ? 1 : 0);
-				}
-
-				// We can detect the end of the stream when Play.Stop is called followed by Buffer.Empty.
-				// However, if you pause and let the whole song buffer, Buffer.Flush is called followed by
-				// Buffer.Empty, so handle that case too.
-				//
-				// Ignore this event if we are more than 5 seconds from the end of the song.
-				if (e.info.code == "NetStream.Buffer.Empty" && (this.lastNetStatus == 'NetStream.Play.Stop' || this.lastNetStatus == 'NetStream.Buffer.Flush'))
-				{
-					if (this.duration && (this.ns.time * 1000) < (this.duration - 5000))
-					{
-						writeDebug('Buffer.Empty but not end of stream. retry seeking to '+ (this.ns.time - 1) +'  (sID: ' + this.sID + ', time: ' + (this.ns.time * 1000) + ', duration: ' + this.duration + ')');
-						if( ns.time > 2) ns.seek( ns.time - 1 );
+					if( bufferTimes.length > 1 ){
+						setBuffer( getStartBuffer() );
 					}
-					else
-					{
-						this.didJustBeforeFinish = false; // reset
-						this.finished = true;
-						writeDebug('calling onfinish for sound ' + this.sID);
-						this.sm.checkProgress();
-						ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfinish");
-					}
-
-				}
-				else if (e.info.code == "NetStream.Buffer.Empty")
-				{
-
-					// The buffer is empty.  Start from the smallest buffer again.
-					this.setBuffer(this.getStartBuffer());
-				}
+					break;
+				case "NetStream.Buffer.Flush":
+					break;
+				case "NetStream.Play.Stop":
+					break;
+				case "NetStream.Play.Complete":
+					this.didJustBeforeFinish = false; // reset
+					this.finished = true;
+					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfinish");
+					break;
+				case "NetStream.Play.FileStructureInvalid":
+				case "NetStream.Play.StreamNotFound":
+					this.failed = true;
+					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", '', event.info.level, event.info.code);
+					break;
+				case "NetStream.Seek.Notify":
+					break;
+				default:
+					break;
 			}
-
-			// Remember the last NetStatus event
-			this.lastNetStatus = e.info.code;
+			lastNetStatus = event.info.code;
 		}
 
-//		private function onLoadProgressTick(event : TimerEvent) : void
-//		{
-//			if (_isLoading)
-//			{
-//				var bytesLoaded : uint = ns.bytesLoaded;
-//				var bytesTotal : uint = ns.bytesTotal;
-//				//picked up in the footer view
-//				dispatchEvent(new ProgressEvent(ProgressEvent.PROGRESS, false, true, bytesLoaded, bytesTotal));
-//
-//				//Set _isLoading
-//				if (bytesLoaded < bytesTotal || (bytesLoaded == 0 && bytesTotal == 0))
-//				{
-//					_isLoading = true;
-//				}
-//				else
-//				{
-//					//dispatchEvent( new Event( LOAD_COMPLETE ) );
-//					_isLoading = false;
-//					_loadProgressTimer.removeEventListener(TimerEvent.TIMER, onLoadProgressTick);
-//				}
-//			}
-//		}
+		// NetStream client callback. Invoked when the song is complete.
+		public function onPlayStatus(info : Object) : void
+		{
+			writeDebug('onPlayStatus called with ' + info);
+			switch (info.code)
+			{
+				case "NetStream.Play.Complete":
+					this.didJustBeforeFinish = false; // reset
+					this.finished = true;
+					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfinish");
+					//writeDebug('Song has finished!');
+					break;
+			}
+		}
 
 		// KJV The sound adds some of its own netstatus handlers so we don't need to do it here.
 		public function addNetstreamEvents() : void

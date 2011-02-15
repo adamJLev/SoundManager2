@@ -72,6 +72,7 @@ package {
 	private var _netConnection:NetConnection;
 	
 	private var _pendingConnectionClose : Boolean;
+	public var ncfirstRun : Boolean;
 
     public function SoundManager2_AS3() {
 
@@ -772,11 +773,6 @@ package {
         bufferLength: 0
       };
 	  
-	  /*if( _netConnection && _netConnection.connected ){
-		  s.loadSound( sURL );
-		  _start( sID, 0, 1 );
-	  }*/
-	  
     }
 
     public function _destroySound(sID:String) : void {
@@ -890,12 +886,20 @@ package {
         }
       } else {
         // resume playing from last position
-        writeDebug('resuming - playing at '+s.lastValues.position+', '+s.lastValues.loops+' times');
+        writeDebug('resuming - playing at last position: '+s.lastValues.position+', loops: '+s.lastValues.loops );
         if (s.useNetstream) {
           if( !s.nc.connected ){
+			  /*if( !ncfirstRun ){
+				  _destroySound( s.sID );
+			  }else {*/
 				s.reconnect();
+			 // }
 			}else{
-			  s.resumeStream();
+				if( s.duration > 0 ){
+				  s.resumeStream();
+				}else{
+					s.reconnect();					
+				}
 			}
         } else {
           s.start(s.lastValues.position, s.lastValues.loops);
@@ -911,6 +915,9 @@ package {
 	
 	private function onNetConnectionStatus( event : NetStatusEvent ) : void{
 		switch( event.info.code ){
+			case "NetConnection.Connect.Success":
+				if( !ncfirstRun ) ncfirstRun = true;
+				break;
 			case "NetConnection.Connect.Closed":
 				if( _pendingConnectionClose ){
 					_pendingConnectionClose = false;
