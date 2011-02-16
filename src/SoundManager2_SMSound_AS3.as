@@ -458,12 +458,12 @@ package
 				// Should only apply to the !didLoad case, but do it for all for simplicity.
 				// nMsecOffset is in milliseconds for streams but in seconds for progressive
 				// download.
-				if (set_position)
+				/*if (set_position)
 				{
 					writeDebug('set position seek: this.lastValues.position: ' + this.lastValues.position);
 					this.ns.seek(this.serverUrl ? nMsecOffset / 1000 : nMsecOffset);
 					this.lastValues.position = nMsecOffset; // https://gist.github.com/1de8a3113cf33d0cff67
-				}
+				}*/
 
 				this.applyTransform();
 
@@ -662,6 +662,9 @@ package
 					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", '', event.info.level, event.info.code);
 					break;
 				case "NetStream.Seek.Notify":
+					break;
+				case "NetStream.InvalidArg":
+					writeDebug('Handling NetStream.InvalidArg');
 					break;
 				default:
 					break;
