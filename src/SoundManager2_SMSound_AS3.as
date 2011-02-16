@@ -665,6 +665,7 @@ package
 					break;
 				case "NetStream.InvalidArg":
 					writeDebug('Handling NetStream.InvalidArg');
+					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfailure", '', event.info.level, event.info.code);
 					break;
 				default:
 					break;
