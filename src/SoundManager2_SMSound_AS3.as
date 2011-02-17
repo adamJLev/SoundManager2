@@ -93,6 +93,7 @@ package
 		private var _networkConnected:Boolean;
 		//private var timedOut:Boolean;
 		private var _unpaused:Boolean;
+		private var _pendingBuffer:Boolean;
 		
 		public function SoundManager2_SMSound_AS3(oSoundManager : SoundManager2_AS3, netconnection:NetConnection, sIDArg : String=null, sURLArg : String=null, usePeakData : Boolean=false, useWaveformData : Boolean=false, useEQData : Boolean=false, useNetstreamArg : Boolean=false, netStreamBufferTime : Number=1, serverUrl : String=null, duration : Number=0, autoPlay : Boolean=false, useEvents : Boolean=false, bufferTimes : Array=null, recordStats : Boolean=false, autoLoad : Boolean=false, checkPolicyFile : Boolean=false)
 		{
@@ -622,19 +623,28 @@ package
 						_closeTime = 0;
 						reconnecting = false;
 					}
+					if( _pendingBuffer ) _pendingBuffer = false;
 					break;
 				case "NetStream.Buffer.Full":
 					//TODO if autoplay=false, dont start buffering at all.
+					if( _pendingBuffer ){
+						ns.resume();
+						_pendingBuffer = false;
+					}
 					break;
 				case "NetStream.Buffer.Empty":
 					ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onbufferchange", 0);
+					_pendingBuffer = true;
+					writeDebug('Buffer.Empty');
+					
 					//not sure we need/want Stop here.
-					if( lastNetStatus == 'NetStream.Play.Stop' || lastNetStatus == 'NetStream.Buffer.Flush'){
+					/*if( lastNetStatus == 'NetStream.Play.Stop' || lastNetStatus == 'NetStream.Buffer.Flush'){
 						if (this.duration && (this.ns.time * 1000) < (this.duration - 5000))
 						{
 							writeDebug('Buffer.Empty but not end of stream. retry seeking to '+ (this.ns.time - 1) +'  (sID: ' + this.sID + ', time: ' + (this.ns.time * 1000) + ', duration: ' + this.duration + ')');
 							if( ns.time > 2) ns.seek( ns.time - 1 );
-						}else{
+						}else
+						{
 							//lame name.
 							this.didJustBeforeFinish = false; // reset
 							this.finished = true;
@@ -642,7 +652,7 @@ package
 							this.sm.checkProgress();
 							ExternalInterface.call(baseJSObject + "['" + this.sID + "']._onfinish");
 						}
-					}
+					}*/
 					if( bufferTimes.length > 1 ){
 						setBuffer( getStartBuffer() );
 					}
